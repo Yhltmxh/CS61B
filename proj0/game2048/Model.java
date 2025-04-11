@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author YHL
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -109,17 +109,55 @@ public class Model extends Observable {
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
-
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
-
+        board.startViewingFrom(side);
+        for (int i = 0; i < board.size(); i ++) {
+            boolean res = dealCol(i);
+            if (res) changed = true;
+        }
+        board.startViewingFrom(Side.NORTH);
         checkGameOver();
         if (changed) {
             setChanged();
         }
         return changed;
     }
+
+    private boolean dealCol(int col) {
+        boolean changed = false;
+        int goal = -1;
+        Tile beforeTile = null;
+        int beforeRow = -1;
+        for (int i = board.size() - 1; i >= 0; i --) {
+            Tile t = board.tile(col, i);
+            // 当前位置为空格就跳过，若为第一个空格就更新goal
+            if (t == null) {
+                if (goal == -1) goal = i;
+                continue;
+            }
+            // 当前位置有元素，先判断它之前的元素是存在并且值相等，成立则合并，否则有空格就移动到目标位
+            if (beforeTile != null && beforeTile.value() == t.value()) {
+                board.move(col, beforeRow, t);
+                score += t.next().value();
+                changed = true;
+                goal = beforeRow - 1;
+                beforeTile = null;
+                beforeRow = -1;
+            }
+            else if (goal != -1) {
+                board.move(col, goal, t);
+                changed = true;
+                beforeTile = t.next();
+                beforeRow = goal;
+                goal -= 1;
+            }
+            else {
+                beforeTile = t;
+                beforeRow = i;
+            }
+        }
+        return changed;
+    }
+
 
     /** Checks if the game is over and sets the gameOver variable
      *  appropriately.
@@ -137,7 +175,12 @@ public class Model extends Observable {
      *  Empty spaces are stored as null.
      * */
     public static boolean emptySpaceExists(Board b) {
-        // TODO: Fill in this function.
+        int size = b.size();
+        for (int i = 0; i < size; i ++) {
+            for (int j = 0; j < size; j ++) {
+                if (b.tile(i, j) == null) return true;
+            }
+        }
         return false;
     }
 
@@ -147,7 +190,13 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
-        // TODO: Fill in this function.
+        int size = b.size();
+        for (int i = 0; i < size; i ++) {
+            for (int j = 0; j < size; j ++) {
+                Tile t = b.tile(i, j);
+                if (t != null && t.value() == MAX_PIECE) return true;
+            }
+        }
         return false;
     }
 
@@ -158,7 +207,21 @@ public class Model extends Observable {
      * 2. There are two adjacent tiles with the same value.
      */
     public static boolean atLeastOneMoveExists(Board b) {
-        // TODO: Fill in this function.
+        int size = b.size();
+        for (int i = 0; i < size; i ++) {
+            for (int j = 0; j < size; j ++) {
+                Tile t = b.tile(i, j);
+                if (t == null) return true;
+                if (i - 1 >= 0) {
+                    Tile t1 = b.tile(i - 1, j);
+                    if (t1 != null && t1.value() == t.value()) return true;
+                }
+                if (j - 1 >= 0) {
+                    Tile t2 = b.tile(i, j - 1);
+                    if (t2 != null && t2.value() == t.value()) return true;
+                }
+            }
+        }
         return false;
     }
 
