@@ -110,9 +110,8 @@ public class Model extends Observable {
         boolean changed;
         changed = false;
         board.startViewingFrom(side);
-        for (int i = 0; i < board.size(); i ++) {
-            boolean res = dealCol(i);
-            if (res && !changed) changed = true;
+        for (int i = 0; i < board.size(); i ++) { // 依次处理每一列
+            changed |= dealCol(i);
         }
         board.startViewingFrom(Side.NORTH);
         checkGameOver();
@@ -122,32 +121,24 @@ public class Model extends Observable {
         return changed;
     }
 
+    /**
+     * 处理一列的移动
+     * @param col current col
+     * @return changed
+     */
     private boolean dealCol(int col) {
         boolean changed = false;
-        int goal = -1, beforeRow = -1;
-        for (int i = board.size() - 1; i >= 0; i --) {
+        int goalRow = board.size() - 1;
+        for (int i = board.size() - 1; i >= 0; i --) { // 从顶部依次往下遍历
             Tile t = board.tile(col, i);
-            // 当前位置为空格就跳过，若为第一个空格就更新goal
-            if (t == null) {
-                if (goal == -1) goal = i;
-                continue;
-            }
-            // 当前位置有元素，先判断它之前的元素是存在并且值相等，成立则合并，否则有空格就移动到目标位
-            if (beforeRow != -1 && board.tile(col, beforeRow).value() == t.value()) {
-                board.move(col, beforeRow, t);
-                score += t.next().value();
-                changed = true;
-                goal = beforeRow - 1;
-                beforeRow = -1;
-            }
-            else if (goal != -1) {
-                board.move(col, goal, t);
-                changed = true;
-                beforeRow = goal;
-                goal -= 1;
-            }
-            else {
-                beforeRow = i;
+            if (t != null) {
+                Tile goalTile = board.tile(col, goalRow);
+                if (goalTile != null && goalTile.value() != t.value()) goalRow -= 1;
+                if (t.row() != goalRow) changed = true;
+                if (board.move(col, goalRow, t)) { // 合并操作更新分数，目标行后移表示当前块已不可再合并
+                    score += t.next().value();
+                    goalRow -= 1;
+                }
             }
         }
         return changed;
