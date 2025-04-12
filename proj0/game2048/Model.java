@@ -134,7 +134,7 @@ public class Model extends Observable {
             if (t != null) {
                 Tile goalTile = board.tile(col, goalRow);
                 if (goalTile != null && goalTile.value() != t.value()) goalRow -= 1;
-                if (t.row() != goalRow) changed = true;
+                if (goalRow != i) changed = true;
                 if (board.move(col, goalRow, t)) { // 合并操作更新分数，目标行后移表示当前块已不可再合并
                     score += t.next().value();
                     goalRow -= 1;

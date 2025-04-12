@@ -197,6 +197,23 @@ public class TestModel extends TestUtils {
     }
 
     @Test
+    public void testDownNoMove() {
+        int[][] before = new int[][]{
+                {0, 0, 0, 0},
+                {0, 0, 0, 0},
+                {0, 0, 0, 0},
+                {2, 0, 2, 2},
+        };
+        int[][] after = before;
+
+        updateModel(before, 0, 0, false);
+        String prevBoard = model.toString();
+        boolean changed = model.tilt(Side.SOUTH);
+        checkChanged(Side.SOUTH, false, changed);
+        checkModel(after, 0, 0, prevBoard, Side.SOUTH);
+    }
+
+    @Test
     /** Move tiles up (no merging). */
     public void testUpNoMerge() {
         int[][] before = new int[][]{
