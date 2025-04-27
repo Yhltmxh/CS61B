@@ -107,7 +107,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
         private int current;
 
-        public ArrayDequeIterator() {
+        ArrayDequeIterator() {
             this.current = first;
         }
 
@@ -131,10 +131,13 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ArrayDeque<?> that = (ArrayDeque<?>) o;
-
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Deque)) {
+            return false;
+        }
+        Deque<?> that = (Deque<?>) o;
         if (that.size() != size) {
             return false;
         }

@@ -216,11 +216,18 @@ public class LinkedListDequeTest {
         assertEquals(a, b);
 
         LinkedListDeque<Integer> c = new LinkedListDeque<>();
-        b.addFirst(4);
-        b.addFirst(2);
-        b.addLast(3);
+        c.addFirst(4);
+        c.addFirst(2);
+        c.addLast(3);
 
         assertNotEquals(a, c);
+
+        Deque<Integer> d = new ArrayDeque<>();
+        d.addFirst(1);
+        d.addFirst(2);
+        d.addLast(3);
+
+        assertEquals(a, d);
     }
 
 

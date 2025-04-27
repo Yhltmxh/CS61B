@@ -142,5 +142,12 @@ public class ArrayDequeTest {
         c.addLast(3);
 
         assertNotEquals(a, c);
+
+        Deque<Integer> d = new LinkedListDeque<>();
+        d.addFirst(1);
+        d.addFirst(2);
+        d.addLast(3);
+
+        assertEquals(a, d);
     }
 }
