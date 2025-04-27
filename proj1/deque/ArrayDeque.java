@@ -61,7 +61,9 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     @Override
     public T removeFirst() {
-        if (size == 0) return null;
+        if (size == 0) {
+            return null;
+        }
         first = (first + 1) % items.length;
         T item = items[first];
         items[first] = null;
@@ -74,7 +76,9 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     @Override
     public T removeLast() {
-        if (size == 0) return null;
+        if (size == 0) {
+            return null;
+        }
         T item = items[end];
         items[end] = null;
         end = (end + items.length - 1) % items.length;
