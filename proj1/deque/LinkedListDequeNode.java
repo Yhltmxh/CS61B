@@ -1,5 +1,7 @@
 package deque;
 
+import java.util.Objects;
+
 /**
  * @description: the node of the LinkedListDeque
  * @author: 杨怀龙
@@ -48,4 +50,14 @@ public class LinkedListDequeNode<T> {
     public void setFront(LinkedListDequeNode<T> front) {
         this.front = front;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LinkedListDequeNode<?> that = (LinkedListDequeNode<?>) o;
+        return value.equals(that.value);
+    }
+
+
 }

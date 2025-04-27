@@ -100,7 +100,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
         return dequeRecurse(head.getNext(), index);
     }
 
-    public T dequeRecurse(LinkedListDequeNode<T> node, int index) {
+    private T dequeRecurse(LinkedListDequeNode<T> node, int index) {
         if (index == 0) {
             return node.getValue();
         }
@@ -111,7 +111,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
 
         private LinkedListDequeNode<T> current;
 
-        public LinkedListDequeIterator(LinkedListDequeNode<T> head) {
+        LinkedListDequeIterator(LinkedListDequeNode<T> head) {
             this.current = head;
         }
 
@@ -132,5 +132,29 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
     @Override
     public Iterator<T> iterator() {
         return new LinkedListDequeIterator(head);
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LinkedListDeque<?> that = (LinkedListDeque<?>) o;
+
+        if (that.size() != size) {
+            return false;
+        }
+
+        LinkedListDequeNode<T> a = this.head.getNext();
+        LinkedListDequeNode<?> b = that.head.getNext();
+        while (a != this.head) {
+            if (!a.equals(b)) {
+                return false;
+            }
+            a = a.getNext();
+            b = b.getNext();
+        }
+
+        return true;
     }
 }

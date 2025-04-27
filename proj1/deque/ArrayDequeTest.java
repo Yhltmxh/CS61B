@@ -4,6 +4,9 @@ import org.junit.Test;
 
 import java.util.Random;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 /**
  * @description: test for ArrayDeque
  * @author: 杨怀龙
@@ -117,5 +120,27 @@ public class ArrayDequeTest {
             System.out.print(" ");
         }
         System.out.println();
+    }
+
+    @Test
+    public void equalsTest() {
+        ArrayDeque<Integer> a = new ArrayDeque<>();
+        a.addFirst(1);
+        a.addFirst(2);
+        a.addLast(3);
+
+        ArrayDeque<Integer> b = new ArrayDeque<>();
+        b.addFirst(1);
+        b.addFirst(2);
+        b.addLast(3);
+
+        assertEquals(a, b);
+
+        ArrayDeque<Integer> c = new ArrayDeque<>();
+        c.addFirst(4);
+        c.addFirst(2);
+        c.addLast(3);
+
+        assertNotEquals(a, c);
     }
 }

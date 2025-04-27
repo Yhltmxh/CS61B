@@ -202,6 +202,29 @@ public class LinkedListDequeTest {
 
 
     @Test
+    public void equalsTest() {
+        LinkedListDeque<Integer> a = new LinkedListDeque<>();
+        a.addFirst(1);
+        a.addFirst(2);
+        a.addLast(3);
+
+        LinkedListDeque<Integer> b = new LinkedListDeque<>();
+        b.addFirst(1);
+        b.addFirst(2);
+        b.addLast(3);
+
+        assertEquals(a, b);
+
+        LinkedListDeque<Integer> c = new LinkedListDeque<>();
+        b.addFirst(4);
+        b.addFirst(2);
+        b.addLast(3);
+
+        assertNotEquals(a, c);
+    }
+
+
+    @Test
     public void randomizedTest() {
         ArrayDeque<Integer> ad = new ArrayDeque<>();
         LinkedListDeque<Integer> ld = new LinkedListDeque<>();

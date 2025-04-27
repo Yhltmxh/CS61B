@@ -10,13 +10,13 @@ import edu.princeton.cs.algs4.StdDraw;
  **/
 public class GuitarHero {
 
-    public static final String keyboard = "q2we4r5ty7u8i9op-[=zxdcfvgbnjmk,.;/' ";
+    public static final String KEYBOARD = "q2we4r5ty7u8i9op-[=zxdcfvgbnjmk,.;/' ";
 
-    public static final GuitarString[] chromaticScales = new GuitarString[37];
+    public static final GuitarString[] SCALES = new GuitarString[37];
 
     public static void main(String[] args) {
-        for (int i = 0; i < chromaticScales.length; i++) {
-            chromaticScales[i] = new GuitarString(440.0 * Math.pow(2, (i - 24) / 12.0));
+        for (int i = 0; i < SCALES.length; i++) {
+            SCALES[i] = new GuitarString(440.0 * Math.pow(2, (i - 24) / 12.0));
         }
 
         while (true) {
@@ -24,15 +24,15 @@ public class GuitarHero {
             /* check if the user has typed a key; if so, process it */
             if (StdDraw.hasNextKeyTyped()) {
                 char key = StdDraw.nextKeyTyped();
-                int index = keyboard.indexOf(key);
+                int index = KEYBOARD.indexOf(key);
                 if (index != -1) {
-                    chromaticScales[index].pluck();
+                    SCALES[index].pluck();
                 }
             }
 
             /* compute the superposition of samples */
             double sample = 0.0;
-            for (GuitarString chromaticScale : chromaticScales) {
+            for (GuitarString chromaticScale : SCALES) {
                 sample += chromaticScale.sample();
             }
 
@@ -40,7 +40,7 @@ public class GuitarHero {
             StdAudio.play(sample);
 
             /* advance the simulation of each guitar string by one step */
-            for (GuitarString chromaticScale : chromaticScales) {
+            for (GuitarString chromaticScale : SCALES) {
                 chromaticScale.tic();
             }
         }
