@@ -16,12 +16,12 @@
 # I strongly recommend that you try to figure it out, and where you cannot,
 # that you ask questions.
 
-JFLAGS = -g -Xlint:unchecked -Xlint:deprecation
+JFLAGS = -g -Xlint:unchecked -Xlint:deprecation -encoding UTF-8
 
 CLASSDIR = ../classes
 
 # See comment in ../Makefile
-PYTHON = python3
+PYTHON = python
 
 RMAKE = "$(MAKE)"
 

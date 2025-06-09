@@ -190,16 +190,12 @@ class Utils {
 
     /* OTHER FILE UTILITIES */
 
-    /** Return the concatentation of FIRST and OTHERS into a File designator,
-     *  analogous to the {@link java.nio.file.Paths.#get(String, String[])}
-     *  method. */
+    /** Return the concatentation of FIRST and OTHERS into a File designator */
     static File join(String first, String... others) {
         return Paths.get(first, others).toFile();
     }
 
-    /** Return the concatentation of FIRST and OTHERS into a File designator,
-     *  analogous to the {@link java.nio.file.Paths.#get(String, String[])}
-     *  method. */
+    /** Return the concatentation of FIRST and OTHERS into a File designator */
     static File join(File first, String... others) {
         return Paths.get(first.getPath(), others).toFile();
     }
@@ -236,4 +232,40 @@ class Utils {
         System.out.printf(msg, args);
         System.out.println();
     }
+
+    /**
+     * 打印错误信息并终止程序
+     * @param message 错误信息
+     */
+    static void exitWithError(String message) {
+        if (message != null && !message.equals("")) {
+            System.out.println(message);
+        }
+        System.exit(0);
+    }
+
+    /**
+     * 创建目录，若创建失败打印错误信息并终止程序
+     * @param file 目录
+     */
+    static void createDirectory(File file) {
+        if (!file.exists() && !file.mkdir()) {
+            exitWithError(String.format("Failed to create '%s' directory.", file.getName()));
+        }
+    }
+
+    /**
+     * 创建文件，若创建失败打印错误信息并终止程序
+     * @param file 文件
+     */
+    static void createFile(File file) {
+        try {
+            if (!file.exists() && !file.createNewFile()) {
+                exitWithError(String.format("Failed to create '%s' file.", file.getName()));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("I/O error during create file", e);
+        }
+    }
+
 }

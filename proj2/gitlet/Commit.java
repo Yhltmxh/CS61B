@@ -1,26 +1,90 @@
 package gitlet;
 
-// TODO: any imports you need here
+import java.io.Serializable;
+import java.util.Date;
+import java.util.Map;
 
-import java.util.Date; // TODO: You'll likely use this in this class
+/**
+ * @description: 提交类，维护元数据及文件索引
+ * @author: Yhltmxh
+ * @create: 2025-06-08 19:04
+ **/
+public class Commit implements Serializable {
 
-/** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
- *
- *  @author TODO
- */
-public class Commit {
     /**
-     * TODO: add instance variables here.
-     *
-     * List all instance variables of the Commit class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided one example for `message`.
+     * SHA-1 哈希值
      */
+    private String id;
 
-    /** The message of this Commit. */
+    /**
+     * 提交日志信息
+     */
     private String message;
 
-    /* TODO: fill in the rest of this class. */
+    /**
+     * 提交创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 父提交
+     */
+    private Commit parent;
+
+    /**
+     * 所提交文件的索引
+     */
+    Map<String, String> blobs;
+
+    public Commit() {}
+
+    public Commit(String message, Date createTime, Commit parent, Map<String, String> blobs) {
+        this.message = message;
+        this.createTime = createTime;
+        this.parent = parent;
+        this.blobs = blobs;
+        this.id = Utils.sha1(message, createTime.toString(), parent.toString(), blobs.toString());
+    }
+
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Commit getParent() {
+        return parent;
+    }
+
+    public void setParent(Commit parent) {
+        this.parent = parent;
+    }
+
+    public Map<String, String> getBlobs() {
+        return blobs;
+    }
+
+    public void setBlobs(Map<String, String> blobs) {
+        this.blobs = blobs;
+    }
+
 }
