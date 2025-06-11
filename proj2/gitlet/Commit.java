@@ -1,7 +1,9 @@
 package gitlet;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,16 +31,24 @@ public class Commit implements Serializable {
     /**
      * 父提交id
      */
-    private String parent;
+    private List<String> parent;
 
     /**
      * 所提交文件的索引
      */
     Map<String, String> blobs;
 
-    public Commit() {}
 
     public Commit(String message, Date createTime, String parent, Map<String, String> blobs) {
+        this.message = message;
+        this.createTime = createTime;
+        this.parent = new ArrayList<>(2);
+        this.parent.add(parent);
+        this.blobs = blobs;
+        this.id = Utils.sha1(message, createTime.toString(), parent.toString(), blobs.toString());
+    }
+
+    public Commit(String message, Date createTime, List<String> parent, Map<String, String> blobs) {
         this.message = message;
         this.createTime = createTime;
         this.parent = parent;
@@ -71,11 +81,11 @@ public class Commit implements Serializable {
         this.createTime = createTime;
     }
 
-    public String getParent() {
+    public List<String> getParent() {
         return parent;
     }
 
-    public void setParent(String parent) {
+    public void setParent(List<String> parent) {
         this.parent = parent;
     }
 

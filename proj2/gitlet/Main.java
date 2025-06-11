@@ -23,12 +23,25 @@ public class Main {
                 break;
             case "add":
                 if (args.length != 2) {
-                    Utils.exitWithError("Incorrect operands.");
+                    if (args.length < 2) {
+                        Utils.exitWithError("Please enter a commit message.");
+                    } else {
+                        Utils.exitWithError("Incorrect operands.");
+                    }
                 }
                 if (!GITLET_DIR.exists()) {
                     Utils.exitWithError("Not in an initialized Gitlet directory.");
                 }
                 doAdd(args[1]);
+                break;
+            case "commit":
+                if (args.length != 2) {
+                    Utils.exitWithError("Incorrect operands.");
+                }
+                if (!GITLET_DIR.exists()) {
+                    Utils.exitWithError("Not in an initialized Gitlet directory.");
+                }
+                doCommit(args[1]);
                 break;
             default: Utils.exitWithError("Incorrect operands.");
         }

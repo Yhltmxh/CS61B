@@ -1,18 +1,14 @@
 package gitlet;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import static gitlet.Utils.*;
 
-// TODO: any imports you need here
 
 /** Represents a gitlet repository.
  *  Deal with every commend.
@@ -57,7 +53,7 @@ public class Repository {
         File master = saveBranch("master", init.getId());
 
         // 更新HEAD
-        updateHead(master.getName(), false);
+        updateHead(master.getName());
     }
 
     public static void doAdd(String fileName) {
@@ -65,6 +61,7 @@ public class Repository {
         if (!addFile.exists()) {
             exitWithError("File does not exist.");
         }
+        String path = addFile.getPath();
         String blobId = sha1(fileName, readContents(addFile));
 
         // 转存blob
@@ -74,7 +71,6 @@ public class Repository {
         Stage stage = readObject(INDEX_FILE, Stage.class);
         Map<String, String> addStage = stage.getAddStage();
         Map<String, String> removeStage = stage.getRemoveStage();
-        String path = addFile.getPath();
 
         // 获取当前提交
         Commit cur = getCurrentCommit();
@@ -86,18 +82,48 @@ public class Repository {
         } else {
             addStage.put(path, blobId);
         }
+        // todo: 文件add后重命名
 
         // 删除暂存区包含该文件则移除
         removeStage.remove(path);
-
-        // 检查是否暂存区文件是否存在，不存在则移除
-        checkExist(addStage);
 
         // 保存暂存区
         saveStage(stage);
 
     }
 
+    public static void doCommit(String message) {
+        Commit cur = getCurrentCommit();
+        Map<String, String> blobs = cur.getBlobs();
+        // 拿到暂存区对象
+        Stage stage = readObject(INDEX_FILE, Stage.class);
+        Map<String, String> addStage = stage.getAddStage();
+        Map<String, String> removeStage = stage.getRemoveStage();
+
+        if (addStage.isEmpty()) {
+            exitWithError("No changes added to the commit.");
+        }
+
+        // 将添加暂存区的索引加入blobs
+        for (String path : addStage.keySet()) {
+            blobs.put(path, addStage.get(path));
+        }
+
+        // 将删除暂存区的索引从blobs中删除
+        for (String path : removeStage.keySet()) {
+            blobs.remove(path);
+        }
+
+        // 保存提交
+        Commit commit = new Commit(message, new Date(), cur.getId(), blobs);
+        saveCommit(commit);
+
+        // 更新当前分支
+        updateBranch(commit.getId(), getCurrentBranch());
+
+        // 清空暂存区
+        saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+    }
 
     /**
      * 保存提交对象
@@ -155,29 +181,38 @@ public class Repository {
 
     /**
      * 更新HEAD
-     * @param point 要更新的指向
-     * @param isDetached 此次更新是否为分离状态
+     * @param point 要更新的指向（本项目没有分离头的状态）
      */
-    private static void updateHead(String point, boolean isDetached) {
+    private static void updateHead(String point) {
         Path base = Paths.get("refs").resolve("heads");
-        if (isDetached) {
-            writeContents(HEAD_FILE, point);
-        } else {
-            writeContents(HEAD_FILE, String.format("ref: %s", base.resolve(point)));
-        }
+        writeContents(HEAD_FILE, String.format("ref: %s", base.resolve(point)));
     }
 
     /**
+     * 更新分支
+     * @param commitId 提交id
+     * @param branch 分支文件
+     */
+    private static void updateBranch(String commitId, File branch) {
+        writeContents(branch, commitId);
+    }
+
+    private static File getCurrentBranch() {
+        // 获取当前head的位置
+        String head = readContentsAsString(HEAD_FILE);
+        return join(GITLET_DIR, head.substring(5));
+    }
+
+
+    /**
      * 获取当前提交
-     * @return 当前分支对象
+     * @return 当前提交对象
      */
     private static Commit getCurrentCommit() {
         // 获取当前head的位置
         String head = readContentsAsString(HEAD_FILE);
-        if (head.substring(0, 4).equals("ref:")) {
-            File branch = join(GITLET_DIR, head.substring(5));
-            head = readContentsAsString(branch);
-        }
+        File branch = join(GITLET_DIR, head.substring(5));
+        head = readContentsAsString(branch);
         File currentCommit = join(COMMITS_DIR, head.substring(0, 2), head.substring(2));
         return readObject(currentCommit, Commit.class);
     }
