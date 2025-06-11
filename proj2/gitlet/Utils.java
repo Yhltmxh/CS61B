@@ -283,4 +283,14 @@ class Utils {
         }
     }
 
+    /**
+     * 删除文件
+     * @param file 文件对象
+     */
+    static void deleteFile(File file) {
+        if (!file.delete()) {
+            exitWithError(String.format("Failed to delete '%s' file.", file.getName()));
+        }
+    }
+
 }

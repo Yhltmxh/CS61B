@@ -125,6 +125,41 @@ public class Repository {
         saveStage(new Stage(new HashMap<>(), new HashMap<>()));
     }
 
+    public static void doRemove(String fileName) {
+        File rmFile = join(CWD, fileName);
+        String path = rmFile.getPath();
+        // 拿到暂存区对象
+        Stage stage = readObject(INDEX_FILE, Stage.class);
+        Map<String, String> addStage = stage.getAddStage();
+        Map<String, String> removeStage = stage.getRemoveStage();
+        // 获取当前提交
+        Commit cur = getCurrentCommit();
+        Map<String, String> commitBlobs = cur.getBlobs();
+        // 当前提交中有该文件的索引，则加入删除暂存区并在工作目录中删除
+        if (commitBlobs.containsKey(path)) {
+            removeStage.put(path, commitBlobs.get(path));
+            if (rmFile.exists()) {
+                deleteFile(rmFile);
+            }
+        } else if (addStage.containsKey(path)) {
+            // 若添加暂存区存在该文件则删除
+            addStage.remove(path);
+        } else {
+            exitWithError("No reason to remove the file.");
+        }
+        saveStage(stage);
+    }
+
+
+
+
+
+
+
+
+
+
+
     /**
      * 保存提交对象
      * @param commit 提交对象

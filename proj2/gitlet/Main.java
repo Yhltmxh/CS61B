@@ -43,6 +43,15 @@ public class Main {
                 }
                 doCommit(args[1]);
                 break;
+            case "rm":
+                if (args.length != 2) {
+                    Utils.exitWithError("Incorrect operands.");
+                }
+                if (!GITLET_DIR.exists()) {
+                    Utils.exitWithError("Not in an initialized Gitlet directory.");
+                }
+                doRemove(args[1]);
+                break;
             default: Utils.exitWithError("Incorrect operands.");
         }
     }
