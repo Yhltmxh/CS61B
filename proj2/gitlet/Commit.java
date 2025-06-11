@@ -27,9 +27,9 @@ public class Commit implements Serializable {
     private Date createTime;
 
     /**
-     * 父提交
+     * 父提交id
      */
-    private Commit parent;
+    private String parent;
 
     /**
      * 所提交文件的索引
@@ -38,7 +38,7 @@ public class Commit implements Serializable {
 
     public Commit() {}
 
-    public Commit(String message, Date createTime, Commit parent, Map<String, String> blobs) {
+    public Commit(String message, Date createTime, String parent, Map<String, String> blobs) {
         this.message = message;
         this.createTime = createTime;
         this.parent = parent;
@@ -71,11 +71,11 @@ public class Commit implements Serializable {
         this.createTime = createTime;
     }
 
-    public Commit getParent() {
+    public String getParent() {
         return parent;
     }
 
-    public void setParent(Commit parent) {
+    public void setParent(String parent) {
         this.parent = parent;
     }
 

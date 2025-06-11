@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -265,6 +266,20 @@ class Utils {
             }
         } catch (IOException e) {
             throw new RuntimeException("I/O error during create file", e);
+        }
+    }
+
+
+    /**
+     * 复制文件
+     * @param source 源文件
+     * @param target 目标文件
+     */
+    static void copyFile(File source, File target) {
+        try {
+            Files.copy(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

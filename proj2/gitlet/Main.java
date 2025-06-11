@@ -22,9 +22,15 @@ public class Main {
                 doInit();
                 break;
             case "add":
-                // TODO: handle the `add [filename]` command
+                if (args.length != 2) {
+                    Utils.exitWithError("Incorrect operands.");
+                }
+                if (!GITLET_DIR.exists()) {
+                    Utils.exitWithError("Not in an initialized Gitlet directory.");
+                }
+                doAdd(args[1]);
                 break;
-            // TODO: FILL THE REST IN
+            default: Utils.exitWithError("Incorrect operands.");
         }
     }
 }
