@@ -65,6 +65,7 @@ public class Main {
                 if (args.length > 1) {
                     Utils.exitWithError("Incorrect operands.");
                 }
+                doGlobalLog();
                 break;
             default: Utils.exitWithError("Incorrect operands.");
         }

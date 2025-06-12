@@ -167,6 +167,15 @@ class Utils {
             }
         };
 
+    // 目录类型过滤器
+    private static final FilenameFilter PLAIN_DIRS =
+            new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return new File(dir, name).isDirectory();
+                }
+            };
+
     /** Returns a list of the names of all plain files in the directory DIR, in
      *  lexicographic order as Java Strings.  Returns null if DIR does
      *  not denote a directory. */
@@ -186,6 +195,28 @@ class Utils {
     static List<String> plainFilenamesIn(String dir) {
         return plainFilenamesIn(new File(dir));
     }
+
+
+    /**
+     * 获取子目录名集合
+     * @param dir 目录
+     * @return 目录名集合
+     */
+    static List<String> plainDirectoryIn(File dir) {
+        String[] files = dir.list(PLAIN_DIRS);
+        if (files == null) {
+            return null;
+        } else {
+            Arrays.sort(files);
+            return Arrays.asList(files);
+        }
+    }
+
+
+    static List<String> plainDirectoryIn(String dir) {
+        return plainDirectoryIn(new File(dir));
+    }
+
 
     /* OTHER FILE UTILITIES */
 

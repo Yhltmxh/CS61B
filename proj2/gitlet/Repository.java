@@ -150,26 +150,23 @@ public class Repository {
 
 
     public static void doLog() {
-        // 获取当前提交
         Commit cur = getCurrentCommit();
         while (cur.getParents().size() > 0) {
-            List<String> parents = cur.getParents();
-            // 打印信息
-            message("===");
-            message("commit %s", cur.getId());
-            if (parents.size() == 2) {
-                message("Merge: %s %s", parents.get(0), parents.get(1));
-            }
-            message("Date: %s", getFormatDate(cur.getCreateTime()));
-            message(cur.getMessage());
-            System.out.println();
-            // commit跳转
-            cur = getCommitById(parents.get(0));
+            printCommitLog(cur);
+            cur = getCommitById(cur.getParents().get(0));
         }
     }
 
 
-
+    public static void doGlobalLog() {
+        List<String> commitIds = getAllCommitId();
+        if (commitIds == null) {
+            return;
+        }
+        for (String id : commitIds) {
+            printCommitLog(getCommitById(id));
+        }
+    }
 
 
 
@@ -278,6 +275,50 @@ public class Repository {
     }
 
     /**
+     * 打印提交日志
+     * @param commit 提交对象
+     */
+    private static void printCommitLog(Commit commit) {
+        List<String> parents = commit.getParents();
+        // 打印信息
+        message("===");
+        message("commit %s", commit.getId());
+        if (parents.size() == 2) {
+            message("Merge: %s %s", parents.get(0), parents.get(1));
+        }
+        message("Date: %s", getFormatDate(commit.getCreateTime()));
+        message(commit.getMessage());
+        System.out.println();
+    }
+
+    /**
+     * 获取所有的提交id
+     * @return id集合
+     */
+    private static List<String> getAllCommitId() {
+        List<String> res = new ArrayList<>();
+        // 获取commits/下所有的子目录名
+        List<String> commitDir = plainDirectoryIn(COMMITS_DIR);
+        if (commitDir == null) {
+            return null;
+        }
+        for (String dir : commitDir) {
+            // 获取子目录下的所有文件名
+            List<String> commitFileName = plainFilenamesIn(join(COMMITS_DIR, dir));
+            StringBuilder sb = new StringBuilder(dir);
+            if (commitFileName == null) {
+                continue;
+            }
+            // 将目录名与文件名进行拼接
+            for (String fileName: commitFileName) {
+                res.add(sb.append(fileName).toString());
+            }
+        }
+        return res;
+    }
+
+    /**
+     * todo: 看该方法是否需要，不需要最后删去
      * 检查暂存区中的文件是否存在，若不存在则删去
      * @param addStage 暂存区索引映射
      */
