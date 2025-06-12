@@ -31,7 +31,7 @@ public class Commit implements Serializable {
     /**
      * 父提交id
      */
-    private List<String> parent;
+    private List<String> parents;
 
     /**
      * 所提交文件的索引
@@ -42,18 +42,18 @@ public class Commit implements Serializable {
     public Commit(String message, Date createTime, String parent, Map<String, String> blobs) {
         this.message = message;
         this.createTime = createTime;
-        this.parent = new ArrayList<>(2);
-        this.parent.add(parent);
+        this.parents = new ArrayList<>();
+        this.parents.add(parent);
         this.blobs = blobs;
-        this.id = Utils.sha1(message, createTime.toString(), parent.toString(), blobs.toString());
+        this.id = Utils.sha1(message, createTime.toString(), this.parents.toString(), blobs.toString());
     }
 
-    public Commit(String message, Date createTime, List<String> parent, Map<String, String> blobs) {
+    public Commit(String message, Date createTime, List<String> parents, Map<String, String> blobs) {
         this.message = message;
         this.createTime = createTime;
-        this.parent = parent;
+        this.parents = parents;
         this.blobs = blobs;
-        this.id = Utils.sha1(message, createTime.toString(), parent.toString(), blobs.toString());
+        this.id = Utils.sha1(message, createTime.toString(), parents.toString(), blobs.toString());
     }
 
 
@@ -81,12 +81,12 @@ public class Commit implements Serializable {
         this.createTime = createTime;
     }
 
-    public List<String> getParent() {
-        return parent;
+    public List<String> getParents() {
+        return parents;
     }
 
-    public void setParent(List<String> parent) {
-        this.parent = parent;
+    public void setParents(List<String> parents) {
+        this.parents = parents;
     }
 
     public Map<String, String> getBlobs() {

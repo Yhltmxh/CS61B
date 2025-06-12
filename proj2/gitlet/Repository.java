@@ -3,9 +3,7 @@ package gitlet;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -46,7 +44,7 @@ public class Repository {
         saveStage(new Stage(new HashMap<>(), new HashMap<>()));
 
         // 创建初始提交 todo: 提交过程后续可封装为方法
-        Commit init = new Commit("initial commit", new Date(0L), "", new HashMap<>());
+        Commit init = new Commit("initial commit", new Date(0L), new ArrayList<>(), new HashMap<>());
         saveCommit(init);
 
         // 创建master分支
@@ -151,7 +149,24 @@ public class Repository {
     }
 
 
-
+    public static void doLog() {
+        // 获取当前提交
+        Commit cur = getCurrentCommit();
+        while (cur.getParents().size() > 0) {
+            List<String> parents = cur.getParents();
+            // 打印信息
+            message("===");
+            message("commit %s", cur.getId());
+            if (parents.size() == 2) {
+                message("Merge: %s %s", parents.get(0), parents.get(1));
+            }
+            message("Date: %s", getFormatDate(cur.getCreateTime()));
+            message(cur.getMessage());
+            System.out.println();
+            // commit跳转
+            cur = getCommitById(parents.get(0));
+        }
+    }
 
 
 
@@ -250,6 +265,16 @@ public class Repository {
         head = readContentsAsString(branch);
         File currentCommit = join(COMMITS_DIR, head.substring(0, 2), head.substring(2));
         return readObject(currentCommit, Commit.class);
+    }
+
+    /**
+     * 获取指定提交对象
+     * @param commitId 提交id
+     * @return 提交对象
+     */
+    private static Commit getCommitById(String commitId) {
+        File commit = join(COMMITS_DIR, commitId.substring(0, 2), commitId.substring(2));
+        return readObject(commit, Commit.class);
     }
 
     /**

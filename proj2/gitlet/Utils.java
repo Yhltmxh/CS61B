@@ -15,9 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Formatter;
-import java.util.List;
+import java.util.*;
 
 
 /** Assorted utilities.
@@ -291,6 +289,15 @@ class Utils {
         if (!file.delete()) {
             exitWithError(String.format("Failed to delete '%s' file.", file.getName()));
         }
+    }
+
+    /**
+     * 获取格式化日期
+     * @param d 日期对象
+     * @return 格式化日期字符串
+     */
+    static String getFormatDate(Date d) {
+        return String.format(Locale.US, "%ta %tB %te %tT %tY %tz", d, d, d, d, d, d);
     }
 
 }

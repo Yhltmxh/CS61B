@@ -19,6 +19,9 @@ public class Main {
         String firstArg = args[0];
         switch(firstArg) {
             case "init":
+                if (args.length > 1) {
+                    Utils.exitWithError("Incorrect operands.");
+                }
                 doInit();
                 break;
             case "add":
@@ -51,6 +54,17 @@ public class Main {
                     Utils.exitWithError("Not in an initialized Gitlet directory.");
                 }
                 doRemove(args[1]);
+                break;
+            case "log":
+                if (args.length > 1) {
+                    Utils.exitWithError("Incorrect operands.");
+                }
+                doLog();
+                break;
+            case "global-log":
+                if (args.length > 1) {
+                    Utils.exitWithError("Incorrect operands.");
+                }
                 break;
             default: Utils.exitWithError("Incorrect operands.");
         }
