@@ -13,7 +13,8 @@ public enum Command {
     REMOVE("rm", 2),
     LOG("log", 1),
     GLOBAL_LOG("global-log", 1),
-    FIND("find", 2)
+    FIND("find", 2),
+    STATUS("status", 1),
     ;
 
 

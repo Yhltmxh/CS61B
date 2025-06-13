@@ -15,6 +15,7 @@ public class Main {
             case LOG -> doLog();
             case GLOBAL_LOG -> doGlobalLog();
             case FIND -> doFind(args[1]);
+            case STATUS -> doStatus();
         }
     }
 }

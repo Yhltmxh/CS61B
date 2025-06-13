@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static gitlet.Service.*;
 import static gitlet.Utils.*;
@@ -61,19 +62,19 @@ public class Repository {
     }
 
 
-    public static void doAdd(String fileName) {
-        File addFile = join(CWD, fileName);
+    public static void doAdd(String filename) {
+        File addFile = join(CWD, filename);
         if (!addFile.exists()) {
             exitWithError("File does not exist.");
         }
         String path = addFile.getPath();
-        String blobId = sha1(fileName, readContents(addFile));
+        String blobId = sha1(filename, readContents(addFile));
 
         // 转存blob
         saveBlob(addFile, blobId);
 
         // 拿到暂存区对象
-        Stage stage = readObject(INDEX_FILE, Stage.class);
+        Stage stage = getStage();
         Map<String, String> addStage = stage.getAddStage();
         Map<String, String> removeStage = stage.getRemoveStage();
 
@@ -106,7 +107,7 @@ public class Repository {
         Commit cur = getCurrentCommit();
         Map<String, String> blobs = cur.getBlobs();
         // 拿到暂存区对象
-        Stage stage = readObject(INDEX_FILE, Stage.class);
+        Stage stage = getStage();
         Map<String, String> addStage = stage.getAddStage();
         Map<String, String> removeStage = stage.getRemoveStage();
 
@@ -140,7 +141,7 @@ public class Repository {
         File rmFile = join(CWD, fileName);
         String path = rmFile.getPath();
         // 拿到暂存区对象
-        Stage stage = readObject(INDEX_FILE, Stage.class);
+        Stage stage = getStage();
         Map<String, String> addStage = stage.getAddStage();
         Map<String, String> removeStage = stage.getRemoveStage();
         // 获取当前提交
@@ -181,6 +182,7 @@ public class Repository {
 
     public static void doFind(String commitMessage) {
         List<String> commitIds = getAllCommitId();
+        // 标记是否找到匹配的提交
         boolean isFind = false;
         for (String id : commitIds) {
             Commit commit = getCommitById(id);
@@ -191,6 +193,82 @@ public class Repository {
         }
         if (!isFind) {
             exitWithError("Found no commit with that message.");
+        }
+    }
+
+
+    public static void doStatus() {
+        // 分支展示
+        message("=== Branches ===");
+        String currentBranch = getCurrentBranch().getName();
+        List<String> allBranches = getAllBranches();
+        Collections.sort(allBranches);
+        for (String branch : allBranches) {
+            if (currentBranch.equals(branch)) {
+                message(String.format("*%s", branch));
+            } else {
+                message(branch);
+            }
+        }
+        System.out.println();
+
+        // 获取暂存区
+        Stage stage = getStage();
+        Map<String, String> addStage = stage.getAddStage();
+        Map<String, String> removeStage = stage.getRemoveStage();
+        // 添加暂存区展示
+        message("=== Staged Files ===");
+        sortAndPrintList(new ArrayList<>(addStage.keySet())
+                .stream().map(path -> join(path).getName()).collect(Collectors.toList()));
+        // 删除暂存区展示
+        message("=== Removed Files ===");
+        sortAndPrintList(new ArrayList<>(removeStage.keySet())
+                .stream().map(path -> join(path).getName()).collect(Collectors.toList()));
+
+        Set<String> allTrackedFiles = getAllTrackedFiles();
+        List<String> allFilesInWorkDir = getAllFilesInWorkDir();
+
+        // 已修改但未暂存
+        message("=== Modifications Not Staged For Commit ===");
+        List<String> modAndNotStagedList = new ArrayList<>();
+        Commit currentCommit = getCurrentCommit();
+        Map<String, String> commitBlobs = currentCommit.getBlobs();
+        for (String path : commitBlobs.keySet()) {
+            File file = join(path);
+            if (!file.exists()) {
+                // 1. 当前提交中已跟踪，并已从工作目录中删除，但未在删除暂存区，
+                if (!removeStage.containsKey(path)) {
+                    modAndNotStagedList.add(file.getName());
+                }
+            } else {
+                String blobId = sha1(file.getName(), readContents(file));
+                // 2. 当前提交中已跟踪，工作目录中已更改，但未添加暂存
+                if (!blobId.equals(commitBlobs.get(path)) && !addStage.containsKey(path)) {
+                    modAndNotStagedList.add(file.getName());
+                }
+            }
+        }
+
+        for (String path : addStage.keySet()) {
+            File file = join(path);
+            // 3. 已在添加暂存区，但在工作目录中已删除
+            if (!file.exists()) {
+                modAndNotStagedList.add(file.getName());
+            } else {
+                String blobId = sha1(file.getName(), readContents(file));
+                // 4. 已在添加暂存区，但内容与工作目录中的不同
+                if (!blobId.equals(addStage.get(path))) {
+                    modAndNotStagedList.add(file.getName());
+                }
+            }
+        }
+        sortAndPrintList(modAndNotStagedList);
+        // 未跟踪（allFilesInWorkDir已是有序集合，故无需排序）
+        message("=== Untracked Files ===");
+        for (String path : allFilesInWorkDir) {
+            if ((!allTrackedFiles.contains(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
+                message(join(path).getName());
+            }
         }
     }
 }

@@ -3,9 +3,8 @@ package gitlet;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static gitlet.Utils.*;
 import static gitlet.Utils.writeObject;
@@ -108,6 +107,15 @@ public class Service {
         return join(GITLET_DIR, head.substring(5));
     }
 
+    /**
+     * 获取所有分支文件名
+     * @return 分支文件名集合
+     */
+    public static List<String> getAllBranches() {
+        List<String> branches = plainFilenamesIn(HEADS_DIR);
+        return branches == null ? new ArrayList<>() : branches;
+    }
+
 
     /**
      * 获取当前提交
@@ -132,22 +140,6 @@ public class Service {
         return readObject(commit, Commit.class);
     }
 
-    /**
-     * 打印提交日志
-     * @param commit 提交对象
-     */
-    public static void printCommitLog(Commit commit) {
-        List<String> parents = commit.getParents();
-        // 打印信息
-        message("===");
-        message("commit %s", commit.getId());
-        if (parents.size() == 2) {
-            message("Merge: %s %s", parents.get(0), parents.get(1));
-        }
-        message("Date: %s", getFormatDate(commit.getCreateTime()));
-        message(commit.getMessage());
-        System.out.println();
-    }
 
     /**
      * 获取所有的提交id
@@ -173,6 +165,73 @@ public class Service {
             }
         }
         return res;
+    }
+
+
+    /**
+     * 获取暂存区对象
+     * @return 暂存区对象
+     */
+    public static Stage getStage() {
+        return readObject(INDEX_FILE, Stage.class);
+    }
+
+
+    /**
+     * 获取所有被commit跟踪的文件
+     * @return 文件路径集合
+     */
+    public static Set<String> getAllTrackedFiles() {
+        Set<String> res = new HashSet<>();
+        List<String> commitIds = getAllCommitId();
+        for (String id : commitIds) {
+            Map<String, String> blobs = getCommitById(id).getBlobs();
+            res.addAll(blobs.keySet());
+        }
+        return res;
+    }
+
+
+    /**
+     * 获取工作目录下所有的文件路径
+     * @return 文件路径集合
+     */
+    public static List<String> getAllFilesInWorkDir() {
+        List<String> res = new ArrayList<>();
+        List<String> filenames = plainFilenamesIn(CWD);
+        if (filenames == null) {
+            return res;
+        }
+        for (String filename : filenames) {
+            res.add(join(CWD, filename).getPath());
+        }
+        return res;
+    }
+
+    /**
+     * 打印提交日志
+     * @param commit 提交对象
+     */
+    public static void printCommitLog(Commit commit) {
+        List<String> parents = commit.getParents();
+        // 打印信息
+        message("===");
+        message("commit %s", commit.getId());
+        if (parents.size() == 2) {
+            message("Merge: %s %s", parents.get(0), parents.get(1));
+        }
+        message("Date: %s", getFormatDate(commit.getCreateTime()));
+        message(commit.getMessage());
+        System.out.println();
+    }
+
+
+    public static void sortAndPrintList(List<String> list) {
+        Collections.sort(list);
+        for (String item : list) {
+            message(item);
+        }
+        System.out.println();
     }
 
     /**
