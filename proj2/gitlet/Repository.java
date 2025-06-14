@@ -351,4 +351,15 @@ public class Repository {
         saveBranch(branchName, getCurrentCommit().getId());
     }
 
+
+    public static void doRemoveBranch(String branchName) {
+        File branchFile = join(HEADS_DIR, branchName);
+        // 校验该分支是否不存在或为当前分支
+        if (!branchFile.exists()) {
+            exitWithError("A branch with that name does not exist.");
+        } else if (branchName.equals(getCurrentBranch().getName())) {
+            exitWithError("Cannot remove the current branch.");
+        }
+        deleteFile(branchFile);
+    }
 }

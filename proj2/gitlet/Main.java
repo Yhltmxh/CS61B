@@ -20,6 +20,7 @@ public class Main {
             case STATUS -> doStatus();
             case CHECKOUT -> doCheckout(args);
             case BRANCH -> doBranch(args[1]);
+            case REMOVE_BRANCH -> doRemoveBranch(args[1]);
         }
     }
 }
