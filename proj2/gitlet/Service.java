@@ -101,6 +101,10 @@ public class Service {
         writeContents(branch, commitId);
     }
 
+    /**
+     * 获取当前分支的文件对象
+     * @return 文件对象
+     */
     public static File getCurrentBranch() {
         // 获取当前head的位置
         String head = readContentsAsString(HEAD_FILE);
@@ -118,6 +122,22 @@ public class Service {
 
 
     /**
+     * 根据分支名获取分支头部的提交
+     * @param branchName 分支名
+     * @return 提交对象
+     */
+    public static Commit getBranchHeadByName(String branchName) {
+        File branchFile = join(HEADS_DIR, branchName);
+        if (!branchFile.exists()) {
+            return null;
+        }
+        String commitId = readContentsAsString(branchFile);
+        File headCommit = join(COMMITS_DIR, commitId.substring(0, 2), commitId.substring(2));
+        return readObject(headCommit, Commit.class);
+    }
+
+
+    /**
      * 获取当前提交
      * @return 当前提交对象
      */
@@ -130,13 +150,20 @@ public class Service {
         return readObject(currentCommit, Commit.class);
     }
 
+
     /**
      * 获取指定提交对象
      * @param commitId 提交id
      * @return 提交对象
      */
     public static Commit getCommitById(String commitId) {
+        if (commitId == null || commitId.length() != UID_LENGTH) {
+            return null;
+        }
         File commit = join(COMMITS_DIR, commitId.substring(0, 2), commitId.substring(2));
+        if (!commit.exists()) {
+            return null;
+        }
         return readObject(commit, Commit.class);
     }
 
@@ -178,21 +205,6 @@ public class Service {
 
 
     /**
-     * 获取所有被commit跟踪的文件
-     * @return 文件路径集合
-     */
-    public static Set<String> getAllTrackedFiles() {
-        Set<String> res = new HashSet<>();
-        List<String> commitIds = getAllCommitId();
-        for (String id : commitIds) {
-            Map<String, String> blobs = getCommitById(id).getBlobs();
-            res.addAll(blobs.keySet());
-        }
-        return res;
-    }
-
-
-    /**
      * 获取工作目录下所有的文件路径
      * @return 文件路径集合
      */
@@ -207,6 +219,7 @@ public class Service {
         }
         return res;
     }
+
 
     /**
      * 打印提交日志
@@ -226,6 +239,10 @@ public class Service {
     }
 
 
+    /**
+     * 排序并打印集合
+     * @param list 集合对象
+     */
     public static void sortAndPrintList(List<String> list) {
         Collections.sort(list);
         for (String item : list) {
@@ -233,6 +250,37 @@ public class Service {
         }
         System.out.println();
     }
+
+
+    /**
+     * 从提交中检出目标文件
+     * @param target 目标文件
+     * @param commit 提交对象
+     */
+    public static void checkoutTargetBlobFromCommit(File target, Commit commit) {
+        Map<String, String> commitBlobs = commit.getBlobs();
+        if (!commitBlobs.containsKey(target.getPath())) {
+            Utils.exitWithError("File does not exist in that commit.");
+        }
+        String blobId = commitBlobs.get(target.getPath());
+        File blobFile = join(BLOBS_DIR, blobId.substring(0, 2), blobId.substring(2));
+        copyFile(blobFile, target);
+    }
+
+
+    /**
+     * 从提交中检出所有文件
+     * @param commit 提交对象
+     */
+    public static void checkoutAllBlobFromCommit(Commit commit) {
+        Map<String, String> commitBlobs = commit.getBlobs();
+        for (String path : commitBlobs.keySet()) {
+            String blobId = commitBlobs.get(path);
+            File blobFile = join(BLOBS_DIR, blobId.substring(0, 2), blobId.substring(2));
+            copyFile(blobFile, join(path));
+        }
+    }
+
 
     /**
      * todo: 看该方法是否需要，不需要最后删去

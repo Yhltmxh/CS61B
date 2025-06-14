@@ -331,4 +331,9 @@ class Utils {
         return String.format(Locale.US, "%ta %tB %te %tT %tY %tz", d, d, d, d, d, d);
     }
 
+
+    static boolean verifyId(String id) {
+        return id != null && id.length() == UID_LENGTH;
+    }
+
 }

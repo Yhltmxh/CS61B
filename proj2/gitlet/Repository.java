@@ -16,17 +16,27 @@ import static gitlet.Utils.*;
 public class Repository {
 
 
+    /**
+     * 校验命令和对应参数数量是否符合要求，以及是否完成初始化
+     * @param args 参数数组
+     * @return 命令枚举
+     */
     public static Command argsCheck(String[] args) {
         if (args.length == 0) {
-            Utils.exitWithError("Please enter a command.");
+            exitWithError("Please enter a command.");
         }
         Command command = Command.findCommand(args[0]);
         if (command == null) {
-            Utils.exitWithError("No command with that name exists.");
-        } else if (args.length != command.getParamCount()) {
-            Utils.exitWithError("Incorrect operands.");
-        } else if (!args[0].equals(Command.INIT.getCommand()) && !GITLET_DIR.exists()) {
-            Utils.exitWithError("Not in an initialized Gitlet directory.");
+            exitWithError("No command with that name exists.");
+        } else {
+            String[] paramCount = command.getParamCount().split(",");
+            boolean isMatch = Arrays.stream(paramCount)
+                    .anyMatch(c -> Integer.parseInt(c) == args.length);
+            if (!isMatch) {
+                exitWithError("Incorrect operands.");
+            } else if (!args[0].equals(Command.INIT.getCommand()) && !GITLET_DIR.exists()) {
+                exitWithError("Not in an initialized Gitlet directory.");
+            }
         }
         return command;
     }
@@ -101,7 +111,7 @@ public class Repository {
 
     public static void doCommit(String message) {
         if (message.isBlank()) {
-            Utils.exitWithError("Please enter a commit message.");
+            exitWithError("Please enter a commit message.");
         }
 
         Commit cur = getCurrentCommit();
@@ -151,7 +161,7 @@ public class Repository {
         if (commitBlobs.containsKey(path)) {
             removeStage.put(path, commitBlobs.get(path));
             if (rmFile.exists()) {
-                deleteFile(rmFile);
+                restrictedDelete(rmFile);
             }
         } else if (addStage.containsKey(path)) {
             // 若添加暂存区存在该文件则删除
@@ -225,7 +235,6 @@ public class Repository {
         sortAndPrintList(new ArrayList<>(removeStage.keySet())
                 .stream().map(path -> join(path).getName()).collect(Collectors.toList()));
 
-        Set<String> allTrackedFiles = getAllTrackedFiles();
         List<String> allFilesInWorkDir = getAllFilesInWorkDir();
 
         // 已修改但未暂存
@@ -263,11 +272,68 @@ public class Repository {
             }
         }
         sortAndPrintList(modAndNotStagedList);
-        // 未跟踪（allFilesInWorkDir已是有序集合，故无需排序）
+        // 未跟踪（allFilesInWorkDir已是有序集合，故无需排序）todo：这里的未跟踪文件的判断标准有误
         message("=== Untracked Files ===");
         for (String path : allFilesInWorkDir) {
-            if ((!allTrackedFiles.contains(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
+            if ((!commitBlobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
                 message(join(path).getName());
+            }
+        }
+    }
+
+
+    public static void doCheckout(String[] args) {
+        if (args.length == 2) {
+            // 要检出的分支为当前分支
+            if (getCurrentBranch().getName().equals(args[1])) {
+                exitWithError("No need to checkout the current branch.");
+            }
+            Commit branchHead = getBranchHeadByName(args[1]);
+            if (branchHead == null) {
+                // 分支不存在
+                exitWithError("No such branch exists.");
+            } else {
+                Map<String, String> headBlobs = branchHead.getBlobs();
+                // 获取暂存区
+                Stage stage = getStage();
+                Map<String, String> addStage = stage.getAddStage();
+                Map<String, String> removeStage = stage.getRemoveStage();
+                // 获取当前提交
+                Commit currentCommit = getCurrentCommit();
+                Map<String, String> blobs = currentCommit.getBlobs();
+                List<String> allFilesInWorkDir = getAllFilesInWorkDir();
+                for (String path : allFilesInWorkDir) {
+                    // 该文件不会被覆盖
+                    if (!headBlobs.containsKey(path)) {
+                        continue;
+                    }
+                    // 未跟踪的文件
+                    if ((!blobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
+                        exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+                    } else {
+                        restrictedDelete(path);
+                    }
+                }
+                checkoutAllBlobFromCommit(branchHead);
+                // 清空暂存区
+                saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+            }
+        } else if (args.length == 3) {
+            if (!args[1].equals("==")) {
+                exitWithError("Incorrect operands.");
+            }
+            // 获取当前提交的所有文件
+            Commit currentCommit = getCurrentCommit();
+            checkoutTargetBlobFromCommit(join(CWD, args[2]), currentCommit);
+        } else if (args.length == 4) {
+            if (!args[2].equals("==")) {
+                exitWithError("Incorrect operands.");
+            }
+            Commit commit = getCommitById(args[1]);
+            if (commit == null) {
+                exitWithError("No commit with that id exists.");
+            } else {
+                checkoutTargetBlobFromCommit(join(CWD, args[2]), commit);
             }
         }
     }

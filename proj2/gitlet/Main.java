@@ -1,5 +1,7 @@
 package gitlet;
 
+import java.util.Arrays;
+
 import static gitlet.Repository.*;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
@@ -16,6 +18,7 @@ public class Main {
             case GLOBAL_LOG -> doGlobalLog();
             case FIND -> doFind(args[1]);
             case STATUS -> doStatus();
+            case CHECKOUT -> doCheckout(args);
         }
     }
 }

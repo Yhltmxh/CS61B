@@ -7,22 +7,23 @@ package gitlet;
  **/
 public enum Command {
 
-    INIT("init", 1),
-    ADD("add", 2),
-    COMMIT("commit", 2),
-    REMOVE("rm", 2),
-    LOG("log", 1),
-    GLOBAL_LOG("global-log", 1),
-    FIND("find", 2),
-    STATUS("status", 1),
+    INIT("init", "1"),
+    ADD("add", "2"),
+    COMMIT("commit", "2"),
+    REMOVE("rm", "2"),
+    LOG("log", "1"),
+    GLOBAL_LOG("global-log", "1"),
+    FIND("find", "2"),
+    STATUS("status", "1"),
+    CHECKOUT("checkout", "2,3,4")
     ;
 
 
     private String command;
 
-    private int paramCount;
+    private String paramCount;
 
-    Command(String command, int paramCount) {
+    Command(String command, String paramCount) {
         this.command = command;
         this.paramCount = paramCount;
     }
@@ -35,11 +36,11 @@ public enum Command {
         this.command = command;
     }
 
-    public int getParamCount() {
+    public String getParamCount() {
         return paramCount;
     }
 
-    public void setParamCount(int paramCount) {
+    public void setParamCount(String paramCount) {
         this.paramCount = paramCount;
     }
 
