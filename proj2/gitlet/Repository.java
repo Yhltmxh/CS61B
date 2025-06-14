@@ -314,9 +314,12 @@ public class Repository {
                         restrictedDelete(path);
                     }
                 }
+                // 检出所有文件
                 checkoutAllBlobFromCommit(branchHead);
                 // 清空暂存区
                 saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+                // 头指针更新
+                updateHead(args[1]);
             }
         } else if (args.length == 3) {
             if (!args[1].equals("==")) {
@@ -337,4 +340,15 @@ public class Repository {
             }
         }
     }
+
+    public static void doBranch(String branchName) {
+        // 校验该分支是否已存在
+        File branchFile = join(HEADS_DIR, branchName);
+        if (branchFile.exists()) {
+            exitWithError("A branch with that name already exists.");
+        }
+        // 创建master分支
+        saveBranch(branchName, getCurrentCommit().getId());
+    }
+
 }

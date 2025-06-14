@@ -15,7 +15,8 @@ public enum Command {
     GLOBAL_LOG("global-log", "1"),
     FIND("find", "2"),
     STATUS("status", "1"),
-    CHECKOUT("checkout", "2,3,4")
+    CHECKOUT("checkout", "2,3,4"),
+    BRANCH("branch", "2"),
     ;
 
 

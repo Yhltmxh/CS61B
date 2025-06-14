@@ -85,7 +85,7 @@ public class Service {
 
     /**
      * 更新HEAD
-     * @param point 要更新的指向（本项目没有分离头的状态）
+     * @param point 要指向的分支名（本项目没有分离头的状态）
      */
     public static void updateHead(String point) {
         Path base = Paths.get("refs").resolve("heads");
@@ -124,7 +124,7 @@ public class Service {
     /**
      * 根据分支名获取分支头部的提交
      * @param branchName 分支名
-     * @return 提交对象
+     * @return 存在：提交对象，不存在：null
      */
     public static Commit getBranchHeadByName(String branchName) {
         File branchFile = join(HEADS_DIR, branchName);

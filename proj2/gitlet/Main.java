@@ -19,6 +19,7 @@ public class Main {
             case FIND -> doFind(args[1]);
             case STATUS -> doStatus();
             case CHECKOUT -> doCheckout(args);
+            case BRANCH -> doBranch(args[1]);
         }
     }
 }
