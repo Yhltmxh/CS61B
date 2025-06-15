@@ -18,6 +18,7 @@ public enum Command {
     CHECKOUT("checkout", "2,3,4"),
     BRANCH("branch", "2"),
     REMOVE_BRANCH("rm-branch", "2"),
+    RESET("reset", "2"),
     ;
 
 

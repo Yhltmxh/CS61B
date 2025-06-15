@@ -293,31 +293,7 @@ public class Repository {
                 // 分支不存在
                 exitWithError("No such branch exists.");
             } else {
-                Map<String, String> headBlobs = branchHead.getBlobs();
-                // 获取暂存区
-                Stage stage = getStage();
-                Map<String, String> addStage = stage.getAddStage();
-                Map<String, String> removeStage = stage.getRemoveStage();
-                // 获取当前提交
-                Commit currentCommit = getCurrentCommit();
-                Map<String, String> blobs = currentCommit.getBlobs();
-                List<String> allFilesInWorkDir = getAllFilesInWorkDir();
-                for (String path : allFilesInWorkDir) {
-                    // 该文件不会被覆盖
-                    if (!headBlobs.containsKey(path)) {
-                        continue;
-                    }
-                    // 未跟踪的文件
-                    if ((!blobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
-                        exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
-                    } else {
-                        restrictedDelete(path);
-                    }
-                }
-                // 检出所有文件
-                checkoutAllBlobFromCommit(branchHead);
-                // 清空暂存区
-                saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+                checkoutCommit(branchHead);
                 // 头指针更新
                 updateHead(args[1]);
             }
@@ -361,5 +337,16 @@ public class Repository {
             exitWithError("Cannot remove the current branch.");
         }
         deleteFile(branchFile);
+    }
+
+
+    public static void doReset(String commitId) {
+        Commit commit = getCommitById(commitId);
+        if (commit == null) {
+            exitWithError("No commit with that id exists.");
+        } else {
+            checkoutCommit(commit);
+            updateBranch(commitId, getCurrentBranch());
+        }
     }
 }

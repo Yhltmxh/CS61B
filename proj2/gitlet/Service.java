@@ -272,13 +272,36 @@ public class Service {
      * 从提交中检出所有文件
      * @param commit 提交对象
      */
-    public static void checkoutAllBlobFromCommit(Commit commit) {
-        Map<String, String> commitBlobs = commit.getBlobs();
-        for (String path : commitBlobs.keySet()) {
-            String blobId = commitBlobs.get(path);
+    public static void checkoutCommit(Commit commit) {
+        Map<String, String> blobs = commit.getBlobs();
+        // 获取暂存区
+        Stage stage = getStage();
+        Map<String, String> addStage = stage.getAddStage();
+        Map<String, String> removeStage = stage.getRemoveStage();
+        // 获取当前提交
+        Commit currentCommit = getCurrentCommit();
+        Map<String, String> curBlobs = currentCommit.getBlobs();
+        List<String> allFilesInWorkDir = getAllFilesInWorkDir();
+        for (String path : allFilesInWorkDir) {
+            // 该文件不会被覆盖
+            if (!blobs.containsKey(path)) {
+                continue;
+            }
+            // 未跟踪的文件
+            if ((!curBlobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
+                exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+            } else {
+                restrictedDelete(path);
+            }
+        }
+        // blob文件拷贝至工作目录
+        for (String path : blobs.keySet()) {
+            String blobId = blobs.get(path);
             File blobFile = join(BLOBS_DIR, blobId.substring(0, 2), blobId.substring(2));
             copyFile(blobFile, join(path));
         }
+        // 清空暂存区
+        saveStage(new Stage(new HashMap<>(), new HashMap<>()));
     }
 
 
