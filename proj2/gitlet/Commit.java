@@ -38,15 +38,7 @@ public class Commit implements Serializable {
      */
     Map<String, String> blobs;
 
-
-    public Commit(String message, Date createTime, String parent, Map<String, String> blobs) {
-        this.message = message;
-        this.createTime = createTime;
-        this.parents = new ArrayList<>();
-        this.parents.add(parent);
-        this.blobs = blobs;
-        this.id = Utils.sha1(message, createTime.toString(), this.parents.toString(), blobs.toString());
-    }
+    public Commit() {}
 
     public Commit(String message, Date createTime, List<String> parents, Map<String, String> blobs) {
         this.message = message;

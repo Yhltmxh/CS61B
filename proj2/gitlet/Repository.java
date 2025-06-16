@@ -1,5 +1,7 @@
 package gitlet;
 
+import edu.neu.ccs.quick.Pair;
+
 import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,7 +48,6 @@ public class Repository {
         if (GITLET_DIR.exists()) {
             exitWithError("A Gitlet version-control system already exists in the current directory.");
         }
-
         // 创建目录
         createDirectory(GITLET_DIR);
         createDirectory(OBJECTS_DIR);
@@ -56,17 +57,13 @@ public class Repository {
         createDirectory(HEADS_DIR);
         createFile(INDEX_FILE);
         createFile(HEAD_FILE);
-
         // index文件初始化
         saveStage(new Stage(new HashMap<>(), new HashMap<>()));
-
         // 创建初始提交 todo: 提交过程后续可封装为方法
         Commit init = new Commit("initial commit", new Date(0L), new ArrayList<>(), new HashMap<>());
         saveCommit(init);
-
         // 创建master分支
         File master = saveBranch("master", init.getId());
-
         // 更新HEAD
         updateHead(master.getName());
     }
@@ -79,19 +76,15 @@ public class Repository {
         }
         String path = addFile.getPath();
         String blobId = sha1(filename, readContents(addFile));
-
         // 转存blob
         saveBlob(addFile, blobId);
-
         // 拿到暂存区对象
         Stage stage = getStage();
         Map<String, String> addStage = stage.getAddStage();
         Map<String, String> removeStage = stage.getRemoveStage();
-
         // 获取当前提交
         Commit cur = getCurrentCommit();
         Map<String, String> commitBlobs = cur.getBlobs();
-
         // 若当前版本与提交版本一致，则移除暂存区中的文件索引
         if (commitBlobs.containsKey(path) && commitBlobs.get(path).equals(blobId)) {
             addStage.remove(path);
@@ -99,10 +92,8 @@ public class Repository {
             addStage.put(path, blobId);
         }
         // todo: 文件add后重命名
-
         // 删除暂存区包含该文件则移除
         removeStage.remove(path);
-
         // 保存暂存区
         saveStage(stage);
 
@@ -115,35 +106,12 @@ public class Repository {
         }
 
         Commit cur = getCurrentCommit();
-        Map<String, String> blobs = cur.getBlobs();
         // 拿到暂存区对象
         Stage stage = getStage();
-        Map<String, String> addStage = stage.getAddStage();
-        Map<String, String> removeStage = stage.getRemoveStage();
 
-        if (addStage.isEmpty()) {
-            exitWithError("No changes added to the commit.");
-        }
-
-        // 将添加暂存区的索引加入blobs
-        for (String path : addStage.keySet()) {
-            blobs.put(path, addStage.get(path));
-        }
-
-        // 将删除暂存区的索引从blobs中删除
-        for (String path : removeStage.keySet()) {
-            blobs.remove(path);
-        }
-
-        // 保存提交
-        Commit commit = new Commit(message, new Date(), cur.getId(), blobs);
-        saveCommit(commit);
-
-        // 更新当前分支
-        updateBranch(commit.getId(), getCurrentBranch());
-
-        // 清空暂存区
-        saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+        List<String> parents = new ArrayList<>();
+        parents.add(cur.getId());
+        dealCommitProcedure(cur, stage, message, parents);
     }
 
 
@@ -272,7 +240,7 @@ public class Repository {
             }
         }
         sortAndPrintList(modAndNotStagedList);
-        // 未跟踪（allFilesInWorkDir已是有序集合，故无需排序）todo：这里的未跟踪文件的判断标准有误
+        // 未跟踪（allFilesInWorkDir已是有序集合，故无需排序）todo：这里的未跟踪文件的判断标准有误（已修改待测试）
         message("=== Untracked Files ===");
         for (String path : allFilesInWorkDir) {
             if ((!commitBlobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
@@ -347,6 +315,92 @@ public class Repository {
         } else {
             checkoutCommit(commit);
             updateBranch(commitId, getCurrentBranch());
+        }
+    }
+
+
+    public static void doMerge(String branchName) {
+        // 获取暂存区
+        Stage stage = getStage();
+        Map<String, String> addStage = stage.getAddStage();
+        Map<String, String> removeStage = stage.getRemoveStage();
+        if (!addStage.isEmpty() || !removeStage.isEmpty()) {
+            exitWithError("You have uncommitted changes.");
+        }
+        Commit target = getBranchHeadByName(branchName);
+        // 给定分支不存在
+        if (target == null) {
+            exitWithError("A branch with that name does not exist.");
+        } else {
+            File currentBranch = getCurrentBranch();
+            // 合并自身报错
+            if (currentBranch.getName().equals(branchName)) {
+                exitWithError("Cannot merge a branch with itself.");
+            }
+            Commit current = getCurrentCommit(currentBranch);
+            // 获取给定分支与当前分支分叉处的提交
+            Commit splitPointCommit = getSplitPointCommit(current, target);
+            if (splitPointCommit.getId().equals(target.getId())) {
+                exitWithError("Given branch is an ancestor of the current branch.");
+            } else if (splitPointCommit.getId().equals(current.getId())) {
+                exitWithError("Current branch fast-forwarded.");
+            }
+
+            Map<String, String> splitPointBlobs = splitPointCommit.getBlobs();
+            Map<String, String> currentBlobs = current.getBlobs();
+            Map<String, String> targetBlobs = target.getBlobs();
+
+            for (String path : splitPointBlobs.keySet()) {
+                boolean currentHas = currentBlobs.containsKey(path);
+                boolean targetHas = targetBlobs.containsKey(path);
+                String spVal = splitPointBlobs.get(path);
+                String curVal = currentBlobs.get(path);
+                String tarVal = targetBlobs.get(path);
+                if (currentHas && targetHas) {
+                    if (spVal.equals(curVal) && !spVal.equals(tarVal)) {
+                        // 分叉点之后给定分支修改的文件而当前分支未修改，将文件检出并暂存。
+                        checkoutTargetBlobFromCommit(path, tarVal);
+                        addStage.put(path, tarVal);
+                    } else if (!spVal.equals(curVal) && !spVal.equals(tarVal) && !curVal.equals(tarVal)) {
+                        // 两个文件的内容都发生了变化且与对方不同，出现冲突
+                        dealConflicts(curVal, tarVal, path, stage);
+                    }
+                } else if (currentHas) {
+                    // 在分支点存在的任何文件，在当前分支未经修改，且在给定分支中不存在，则应被删除（并变为未跟踪状态）。
+                    if (spVal.equals(curVal)) {
+                        restrictedDelete(path);
+                        removeStage.put(path, curVal);
+                    } else {
+                        // 一个文件的内容发生了变化而另一个文件被删除，出现冲突
+                        dealConflicts(curVal, null, path, stage);
+                    }
+                } else if (targetHas && !spVal.equals(tarVal)) {
+                    // 一个文件的内容发生了变化而另一个文件被删除，出现冲突
+                    dealConflicts(null, tarVal, path, stage);
+                }
+            }
+            for (String path : targetBlobs.keySet()) {
+                boolean currentHas = currentBlobs.containsKey(path);
+                boolean splitPointHas = splitPointBlobs.containsKey(path);
+                String curVal = currentBlobs.get(path);
+                String tarVal = targetBlobs.get(path);
+                if (!splitPointHas && !currentHas) {
+                    // 在分叉点不存在而仅在给定分支中存在的任何文件都应被检出并暂存。
+                    checkoutTargetBlobFromCommit(path, tarVal);
+                    addStage.put(path, tarVal);
+                } else if (currentHas) {
+                    if (!tarVal.equals(curVal)) {
+                        // 该文件在分叉点时不存在，而在给定分支和当前分支中具有不同的内容，出现冲突
+                        dealConflicts(curVal, tarVal, path, stage);
+                    }
+                }
+            }
+            // 进行提交
+            List<String> parents = new ArrayList<>();
+            parents.add(current.getId());
+            parents.add(target.getId());
+            String message = String.format("Merged %s into %s.", branchName, currentBranch.getName());
+            dealCommitProcedure(current, stage, message, parents);
         }
     }
 }

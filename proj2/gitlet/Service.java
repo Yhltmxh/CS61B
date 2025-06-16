@@ -1,5 +1,7 @@
 package gitlet;
 
+import org.checkerframework.checker.units.qual.A;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -152,6 +154,18 @@ public class Service {
 
 
     /**
+     * 获取当前提交
+     * @param currentBranch 当前分支
+     * @return 当前提交对象
+     */
+    public static Commit getCurrentCommit(File currentBranch) {
+        String head = readContentsAsString(currentBranch);
+        File currentCommit = join(COMMITS_DIR, head.substring(0, 2), head.substring(2));
+        return readObject(currentCommit, Commit.class);
+    }
+
+
+    /**
      * 获取指定提交对象
      * @param commitId 提交id
      * @return 提交对象
@@ -166,6 +180,43 @@ public class Service {
         }
         return readObject(commit, Commit.class);
     }
+
+
+    /**
+     * 找到两分支的最近分叉点
+     * @param current 当前分支头
+     * @param target 目标分支头
+     * @return 分叉点的提交
+     */
+    public static Commit getSplitPointCommit(Commit current, Commit target) {
+        if (target.getId().equals(current.getId())) {
+            return current;
+        }
+        Set<String> hash = new HashSet<>();
+        Queue<Commit> queue = new ArrayDeque<>();
+        // bfs 遍历当前分支，将所有节点放入哈希表
+        queue.offer(current);
+        while (!queue.isEmpty()) {
+            Commit c = queue.poll();
+            hash.add(c.getId());
+            for (String parent : c.getParents()) {
+                queue.offer(getCommitById(parent));
+            }
+        }
+        // bfs 给定分支找到与当前分支的最近公共节点
+        queue.offer(target);
+        while (!queue.isEmpty()) {
+            Commit c = queue.poll();
+            if (hash.contains(c.getId())) {
+                return c;
+            }
+            for (String parent : c.getParents()) {
+                queue.offer(getCommitById(parent));
+            }
+        }
+        return new Commit();
+    }
+
 
 
     /**
@@ -195,6 +246,9 @@ public class Service {
     }
 
 
+
+
+
     /**
      * 获取暂存区对象
      * @return 暂存区对象
@@ -216,6 +270,21 @@ public class Service {
         }
         for (String filename : filenames) {
             res.add(join(CWD, filename).getPath());
+        }
+        return res;
+    }
+
+
+    public static List<String> getAllUntrackedFiles(Commit currentCommit, Stage stage) {
+        Map<String, String> addStage = stage.getAddStage();
+        Map<String, String> removeStage = stage.getRemoveStage();
+        Map<String, String> commitBlobs = currentCommit.getBlobs();
+        List<String> res = new ArrayList<>();
+        List<String> allFiles = getAllFilesInWorkDir();
+        for (String path : allFiles) {
+            if ((!commitBlobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
+                res.add(path);
+            }
         }
         return res;
     }
@@ -269,6 +338,17 @@ public class Service {
 
 
     /**
+     * 从提交中检出目标文件
+     * @param targetPath 目标文件路径
+     * @param blobId id
+     */
+    public static void checkoutTargetBlobFromCommit(String targetPath, String blobId) {
+        File blobFile = join(BLOBS_DIR, blobId.substring(0, 2), blobId.substring(2));
+        copyFile(blobFile, join(targetPath));
+    }
+
+
+    /**
      * 从提交中检出所有文件
      * @param commit 提交对象
      */
@@ -304,6 +384,57 @@ public class Service {
         saveStage(new Stage(new HashMap<>(), new HashMap<>()));
     }
 
+
+    /**
+     * 处理文件冲突
+     * @param currentId 当前blob的id
+     * @param targetId 指定blob的id
+     * @param stage 暂存区
+     * @param path 最终文件存储路径
+     */
+    public static void dealConflicts(String currentId, String targetId, String path, Stage stage) {
+        String currentContents = "", targetContents = "";
+        if (currentId != null) {
+            File currentBlob = join(BLOBS_DIR, currentId.substring(0, 2), currentId.substring(2));
+            currentContents = readContentsAsString(currentBlob);
+        }
+        if (targetId != null) {
+            File targetBlob = join(BLOBS_DIR, targetId.substring(0, 2), targetId.substring(2));
+            targetContents = readContentsAsString(targetBlob);
+        }
+        String sb = "<<<<<<< HEAD\n" + currentContents + "=======\n" + targetContents + ">>>>>>>\n";
+        File res = join(path);
+        writeContents(res, sb);
+        String blobId = sha1(res.getName(), sb);
+        // 转存blob
+        saveBlob(res, blobId);
+        stage.getAddStage().put(path, blobId);
+    }
+
+
+    public static void dealCommitProcedure(Commit currentCommit, Stage stage, String message, List<String> parents) {
+        Map<String, String> addStage = stage.getAddStage();
+        Map<String, String> removeStage = stage.getRemoveStage();
+        Map<String, String> currentBlobs = currentCommit.getBlobs();
+        if (addStage.isEmpty()) {
+            exitWithError("No changes added to the commit.");
+        }
+        // 将添加暂存区的索引加入blobs
+        for (String path : addStage.keySet()) {
+            currentBlobs.put(path, addStage.get(path));
+        }
+        // 将删除暂存区的索引从blobs中删除
+        for (String path : removeStage.keySet()) {
+            currentBlobs.remove(path);
+        }
+        // 保存提交
+        Commit commit = new Commit(message, new Date(), parents, currentBlobs);
+        saveCommit(commit);
+        // 更新当前分支
+        updateBranch(commit.getId(), getCurrentBranch());
+        // 清空暂存区
+        saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+    }
 
     /**
      * todo: 看该方法是否需要，不需要最后删去

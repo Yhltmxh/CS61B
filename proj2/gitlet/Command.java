@@ -19,6 +19,7 @@ public enum Command {
     BRANCH("branch", "2"),
     REMOVE_BRANCH("rm-branch", "2"),
     RESET("reset", "2"),
+    MERGE("merge", "2")
     ;
 
 

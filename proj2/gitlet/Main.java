@@ -22,6 +22,7 @@ public class Main {
             case BRANCH -> doBranch(args[1]);
             case REMOVE_BRANCH -> doRemoveBranch(args[1]);
             case RESET -> doReset(args[1]);
+            case MERGE -> doMerge(args[1]);
         }
     }
 }
