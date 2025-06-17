@@ -328,7 +328,7 @@ class Utils {
      * @return 格式化日期字符串
      */
     static String getFormatDate(Date d) {
-        return String.format(Locale.US, "%ta %tB %te %tT %tY %tz", d, d, d, d, d, d);
+        return String.format(Locale.US, "%ta %tb %te %tT %tY %tz", d, d, d, d, d, d);
     }
 
 

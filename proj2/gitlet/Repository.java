@@ -1,7 +1,5 @@
 package gitlet;
 
-import edu.neu.ccs.quick.Pair;
-
 import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -147,6 +145,7 @@ public class Repository {
             printCommitLog(cur);
             cur = getCommitById(cur.getParents().get(0));
         }
+        printCommitLog(cur);
     }
 
 
@@ -266,21 +265,21 @@ public class Repository {
                 updateHead(args[1]);
             }
         } else if (args.length == 3) {
-            if (!args[1].equals("==")) {
+            if (!args[1].equals("--")) {
                 exitWithError("Incorrect operands.");
             }
             // 获取当前提交的所有文件
             Commit currentCommit = getCurrentCommit();
             checkoutTargetBlobFromCommit(join(CWD, args[2]), currentCommit);
         } else if (args.length == 4) {
-            if (!args[2].equals("==")) {
+            if (!args[2].equals("--")) {
                 exitWithError("Incorrect operands.");
             }
             Commit commit = getCommitById(args[1]);
             if (commit == null) {
                 exitWithError("No commit with that id exists.");
             } else {
-                checkoutTargetBlobFromCommit(join(CWD, args[2]), commit);
+                checkoutTargetBlobFromCommit(join(CWD, args[3]), commit);
             }
         }
     }
@@ -375,6 +374,9 @@ public class Repository {
                         dealConflicts(curVal, null, path, stage);
                     }
                 } else if (targetHas && !spVal.equals(tarVal)) {
+                    if (join(path).exists()) {
+                        exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+                    }
                     // 一个文件的内容发生了变化而另一个文件被删除，出现冲突
                     dealConflicts(null, tarVal, path, stage);
                 }
@@ -385,16 +387,21 @@ public class Repository {
                 String curVal = currentBlobs.get(path);
                 String tarVal = targetBlobs.get(path);
                 if (!splitPointHas && !currentHas) {
+                    if (join(path).exists()) {
+                        exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+                    }
                     // 在分叉点不存在而仅在给定分支中存在的任何文件都应被检出并暂存。
                     checkoutTargetBlobFromCommit(path, tarVal);
                     addStage.put(path, tarVal);
-                } else if (currentHas) {
+                } else if (!splitPointHas) {
                     if (!tarVal.equals(curVal)) {
                         // 该文件在分叉点时不存在，而在给定分支和当前分支中具有不同的内容，出现冲突
                         dealConflicts(curVal, tarVal, path, stage);
                     }
                 }
             }
+
+
             // 进行提交
             List<String> parents = new ArrayList<>();
             parents.add(current.getId());

@@ -1,6 +1,5 @@
 package gitlet;
 
-import org.checkerframework.checker.units.qual.A;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -171,8 +170,27 @@ public class Service {
      * @return 提交对象
      */
     public static Commit getCommitById(String commitId) {
-        if (commitId == null || commitId.length() != UID_LENGTH) {
+        if (commitId == null || commitId.length() > UID_LENGTH) {
             return null;
+        } else if (commitId.length() < UID_LENGTH && commitId.length() > 1) {
+            // 若给定的id长度小于标准长度，则进行前缀匹配
+            File dir = join(COMMITS_DIR, commitId.substring(0, 2));
+            if (dir.exists()) {
+                String a = commitId.substring(2);
+                List<String> names = plainFilenamesIn(dir);
+                if (names == null) {
+                    return null;
+                } else {
+                    List<String> matchList = names.stream()
+                            .filter(t -> t.startsWith(a)).collect(Collectors.toList());
+                    if (matchList.size() != 1) {
+                        return null;
+                    } else {
+                        commitId = commitId.substring(0, 2) + matchList.get(0);
+                    }
+                }
+
+            }
         }
         File commit = join(COMMITS_DIR, commitId.substring(0, 2), commitId.substring(2));
         if (!commit.exists()) {
@@ -275,21 +293,6 @@ public class Service {
     }
 
 
-    public static List<String> getAllUntrackedFiles(Commit currentCommit, Stage stage) {
-        Map<String, String> addStage = stage.getAddStage();
-        Map<String, String> removeStage = stage.getRemoveStage();
-        Map<String, String> commitBlobs = currentCommit.getBlobs();
-        List<String> res = new ArrayList<>();
-        List<String> allFiles = getAllFilesInWorkDir();
-        for (String path : allFiles) {
-            if ((!commitBlobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
-                res.add(path);
-            }
-        }
-        return res;
-    }
-
-
     /**
      * 打印提交日志
      * @param commit 提交对象
@@ -300,7 +303,7 @@ public class Service {
         message("===");
         message("commit %s", commit.getId());
         if (parents.size() == 2) {
-            message("Merge: %s %s", parents.get(0), parents.get(1));
+            message("Merge: %s %s", parents.get(0).substring(0, 7), parents.get(1).substring(0, 7));
         }
         message("Date: %s", getFormatDate(commit.getCreateTime()));
         message(commit.getMessage());
@@ -354,21 +357,13 @@ public class Service {
      */
     public static void checkoutCommit(Commit commit) {
         Map<String, String> blobs = commit.getBlobs();
-        // 获取暂存区
-        Stage stage = getStage();
-        Map<String, String> addStage = stage.getAddStage();
-        Map<String, String> removeStage = stage.getRemoveStage();
         // 获取当前提交
         Commit currentCommit = getCurrentCommit();
         Map<String, String> curBlobs = currentCommit.getBlobs();
         List<String> allFilesInWorkDir = getAllFilesInWorkDir();
         for (String path : allFilesInWorkDir) {
-            // 该文件不会被覆盖
-            if (!blobs.containsKey(path)) {
-                continue;
-            }
             // 未跟踪的文件
-            if ((!curBlobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
+            if (!curBlobs.containsKey(path) && blobs.containsKey(path)) {
                 exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
             } else {
                 restrictedDelete(path);
@@ -409,6 +404,7 @@ public class Service {
         // 转存blob
         saveBlob(res, blobId);
         stage.getAddStage().put(path, blobId);
+        message("Encountered a merge conflict.");
     }
 
 
@@ -416,7 +412,7 @@ public class Service {
         Map<String, String> addStage = stage.getAddStage();
         Map<String, String> removeStage = stage.getRemoveStage();
         Map<String, String> currentBlobs = currentCommit.getBlobs();
-        if (addStage.isEmpty()) {
+        if (addStage.isEmpty() && removeStage.isEmpty()) {
             exitWithError("No changes added to the commit.");
         }
         // 将添加暂存区的索引加入blobs
@@ -434,18 +430,5 @@ public class Service {
         updateBranch(commit.getId(), getCurrentBranch());
         // 清空暂存区
         saveStage(new Stage(new HashMap<>(), new HashMap<>()));
-    }
-
-    /**
-     * todo: 看该方法是否需要，不需要最后删去
-     * 检查暂存区中的文件是否存在，若不存在则删去
-     * @param addStage 暂存区索引映射
-     */
-    public static void checkExist(Map<String, String> addStage) {
-        for (String path : addStage.keySet()) {
-            if (!Paths.get(path).toFile().exists()) {
-                addStage.remove(path);
-            }
-        }
     }
 }
