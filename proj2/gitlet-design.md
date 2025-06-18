@@ -77,11 +77,7 @@
 
 ## 三、命令难点实现
 
-### 1. init
-
-创建目录，创建初始提交，创建master分支，更新HEAD
-
-### 2. merge
+### 1. merge
 
 #### 两分支在同一链表的情况（这里的分支均指分支头部的提交）：
 
@@ -134,100 +130,7 @@ py tester.py --verbose samples/test01-init.in
 py tester.py samples/*.in
 ```
 
-test33、test36、test43存在问题
 
 
 
-```
-
-py tester.py --verbose samples/test30-rm-branch.in
-
-
-test01-init:√
-
-test02-basic-checkout:√
-
-test03-basic-log:√
-
-test04-prev-checkout:√
-
-test11-basic-status:√
-
-test12-add-status:√
-
-test13-remove-status:√
-
-test14-add-remove-status:√
-
-test15-remove-add-status:√
-
-test16-empty-commit-err:√
-
-test17-empty-commit-message-err:√
-
-test18-nop-add:√
-
-test19-add-missing-err:√
-
-test20-status-after-commit:√
-
-test21-nop-remove-err:√
-
-test22-remove-deleted-file:√
-
-test23-global-log:√
-
-test24-global-log-prev:√
-
-test25-successful-find:√
-
-test26-successful-find-orphan:√
-
-test27-unsuccessful-find-err:√
-
-test28-checkout-detail:√
-
-test29-bad-checkouts-err:√
-
-test30-branches:√
-
-test30-rm-branch:√
-
-test31-duplicate-branch-err:√
-
-test31-rm-branch-err:√
-
-test32-file-overwrite-err:√
-
-*test33-merge-no-conflicts:
-
-test34-merge-conflicts:
-
-test35-merge-rm-conflicts:
-
-*test36-merge-err:
-
-test36-merge-parent2:
-
-test37-reset1:
-
-test38-bad-resets-err:√
-
-test39-short-uid:
-
-test40-special-merge-cases:
-
-test41-no-command-err:√
-
-test42-other-err:√
-
-*test43-criss-cross-merge:
-
-test43-criss-cross-merge-b:
-
-test44-bai-merge:
-
-
-
-```
 

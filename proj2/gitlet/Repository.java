@@ -43,8 +43,9 @@ public class Repository {
 
 
     public static void doInit() {
+        String msg = "A Gitlet version-control system already exists in the current directory.";
         if (GITLET_DIR.exists()) {
-            exitWithError("A Gitlet version-control system already exists in the current directory.");
+            exitWithError(msg);
         }
         // 创建目录
         createDirectory(GITLET_DIR);
@@ -58,7 +59,7 @@ public class Repository {
         // index文件初始化
         saveStage(new Stage(new HashMap<>(), new HashMap<>()));
         // 创建初始提交 todo: 提交过程后续可封装为方法
-        Commit init = new Commit("initial commit", new Date(0L), new ArrayList<>(), new HashMap<>());
+        Commit init = new Commit("initial commit", new Date(0), new ArrayList<>(), new HashMap<>());
         saveCommit(init);
         // 创建master分支
         File master = saveBranch("master", init.getId());
@@ -214,13 +215,13 @@ public class Repository {
             if (!file.exists()) {
                 // 1. 当前提交中已跟踪，并已从工作目录中删除，但未在删除暂存区，
                 if (!removeStage.containsKey(path)) {
-                    modAndNotStagedList.add(file.getName());
+                    modAndNotStagedList.add(file.getName() + " (deleted)");
                 }
             } else {
                 String blobId = sha1(file.getName(), readContents(file));
                 // 2. 当前提交中已跟踪，工作目录中已更改，但未添加暂存
                 if (!blobId.equals(commitBlobs.get(path)) && !addStage.containsKey(path)) {
-                    modAndNotStagedList.add(file.getName());
+                    modAndNotStagedList.add(file.getName() + " (modified)");
                 }
             }
         }
@@ -229,20 +230,21 @@ public class Repository {
             File file = join(path);
             // 3. 已在添加暂存区，但在工作目录中已删除
             if (!file.exists()) {
-                modAndNotStagedList.add(file.getName());
+                modAndNotStagedList.add(file.getName() + " (deleted)");
             } else {
                 String blobId = sha1(file.getName(), readContents(file));
                 // 4. 已在添加暂存区，但内容与工作目录中的不同
                 if (!blobId.equals(addStage.get(path))) {
-                    modAndNotStagedList.add(file.getName());
+                    modAndNotStagedList.add(file.getName() + " (modified)");
                 }
             }
         }
         sortAndPrintList(modAndNotStagedList);
-        // 未跟踪（allFilesInWorkDir已是有序集合，故无需排序）todo：这里的未跟踪文件的判断标准有误（已修改待测试）
+        // 未跟踪（allFilesInWorkDir已是有序集合，故无需排序）
         message("=== Untracked Files ===");
         for (String path : allFilesInWorkDir) {
-            if ((!commitBlobs.containsKey(path) && !addStage.containsKey(path)) || removeStage.containsKey(path)) {
+            if ((!commitBlobs.containsKey(path) && !addStage.containsKey(path))
+                    || removeStage.containsKey(path)) {
                 message(join(path).getName());
             }
         }
@@ -319,6 +321,7 @@ public class Repository {
 
 
     public static void doMerge(String branchName) {
+
         // 获取暂存区
         Stage stage = getStage();
         Map<String, String> addStage = stage.getAddStage();
@@ -342,6 +345,9 @@ public class Repository {
             if (splitPointCommit.getId().equals(target.getId())) {
                 exitWithError("Given branch is an ancestor of the current branch.");
             } else if (splitPointCommit.getId().equals(current.getId())) {
+                // 如果分叉点是当前分支，那么先检出给定分支，再打印消息
+                checkoutCommit(target);
+                updateHead(branchName);
                 exitWithError("Current branch fast-forwarded.");
             }
 
@@ -349,6 +355,10 @@ public class Repository {
             Map<String, String> currentBlobs = current.getBlobs();
             Map<String, String> targetBlobs = target.getBlobs();
 
+            // 这里必须等所有错误都判断完后再执行文件的拷贝和删除
+            List<String> toCheckout = new ArrayList<>();
+            List<String> toDelete = new ArrayList<>();
+            List<String> conflicts = new ArrayList<>();
             for (String path : splitPointBlobs.keySet()) {
                 boolean currentHas = currentBlobs.containsKey(path);
                 boolean targetHas = targetBlobs.containsKey(path);
@@ -358,27 +368,27 @@ public class Repository {
                 if (currentHas && targetHas) {
                     if (spVal.equals(curVal) && !spVal.equals(tarVal)) {
                         // 分叉点之后给定分支修改的文件而当前分支未修改，将文件检出并暂存。
-                        checkoutTargetBlobFromCommit(path, tarVal);
-                        addStage.put(path, tarVal);
-                    } else if (!spVal.equals(curVal) && !spVal.equals(tarVal) && !curVal.equals(tarVal)) {
+                        toCheckout.add(path);
+                    } else if (!spVal.equals(curVal) && !spVal.equals(tarVal)
+                            && !curVal.equals(tarVal)) {
                         // 两个文件的内容都发生了变化且与对方不同，出现冲突
-                        dealConflicts(curVal, tarVal, path, stage);
+                        conflicts.add(path);
                     }
                 } else if (currentHas) {
                     // 在分支点存在的任何文件，在当前分支未经修改，且在给定分支中不存在，则应被删除（并变为未跟踪状态）。
                     if (spVal.equals(curVal)) {
-                        restrictedDelete(path);
-                        removeStage.put(path, curVal);
+                        toDelete.add(path);
                     } else {
                         // 一个文件的内容发生了变化而另一个文件被删除，出现冲突
-                        dealConflicts(curVal, null, path, stage);
+                        conflicts.add(path);
                     }
                 } else if (targetHas && !spVal.equals(tarVal)) {
                     if (join(path).exists()) {
-                        exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+                        exitWithError("There is an untracked file in the way; " +
+                                "delete it, or add and commit it first.");
                     }
                     // 一个文件的内容发生了变化而另一个文件被删除，出现冲突
-                    dealConflicts(null, tarVal, path, stage);
+                    conflicts.add(path);
                 }
             }
             for (String path : targetBlobs.keySet()) {
@@ -388,25 +398,37 @@ public class Repository {
                 String tarVal = targetBlobs.get(path);
                 if (!splitPointHas && !currentHas) {
                     if (join(path).exists()) {
-                        exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+                        exitWithError("There is an untracked file in the way; " +
+                                "delete it, or add and commit it first.");
                     }
                     // 在分叉点不存在而仅在给定分支中存在的任何文件都应被检出并暂存。
-                    checkoutTargetBlobFromCommit(path, tarVal);
-                    addStage.put(path, tarVal);
+                    toCheckout.add(path);
                 } else if (!splitPointHas) {
                     if (!tarVal.equals(curVal)) {
                         // 该文件在分叉点时不存在，而在给定分支和当前分支中具有不同的内容，出现冲突
-                        dealConflicts(curVal, tarVal, path, stage);
+                        conflicts.add(path);
                     }
                 }
             }
-
+            // 所有校验结束，执行文件处理
+            for (String path : toCheckout) {
+                checkoutTargetBlobFromCommit(path, targetBlobs.get(path));
+                addStage.put(path, targetBlobs.get(path));
+            }
+            for (String path : toDelete) {
+                restrictedDelete(path);
+                removeStage.put(path, currentBlobs.get(path));
+            }
+            for (String path : conflicts) {
+                dealConflicts(currentBlobs.get(path), targetBlobs.get(path), path, stage);
+            }
 
             // 进行提交
             List<String> parents = new ArrayList<>();
             parents.add(current.getId());
             parents.add(target.getId());
-            String message = String.format("Merged %s into %s.", branchName, currentBranch.getName());
+            String currentBranchName = currentBranch.getName();
+            String message = String.format("Merged %s into %s.", branchName, currentBranchName);
             dealCommitProcedure(current, stage, message, parents);
         }
     }

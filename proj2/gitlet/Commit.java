@@ -37,9 +37,11 @@ public class Commit implements Serializable {
      */
     Map<String, String> blobs;
 
-    public Commit() {}
+    public Commit() {
+    }
 
-    public Commit(String message, Date createTime, List<String> parents, Map<String, String> blobs) {
+    public Commit(String message, Date createTime,
+                  List<String> parents, Map<String, String> blobs) {
         this.message = message;
         this.createTime = createTime;
         this.parents = parents;

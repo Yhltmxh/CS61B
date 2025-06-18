@@ -352,7 +352,7 @@ public class Service {
 
 
     /**
-     * 从提交中检出所有文件
+     * 从提交中检出所有文件并清空暂存区
      * @param commit 提交对象
      */
     public static void checkoutCommit(Commit commit) {
@@ -364,7 +364,8 @@ public class Service {
         for (String path : allFilesInWorkDir) {
             // 未跟踪的文件
             if (!curBlobs.containsKey(path) && blobs.containsKey(path)) {
-                exitWithError("There is an untracked file in the way; delete it, or add and commit it first.");
+                exitWithError("There is an untracked file in the way; " +
+                        "delete it, or add and commit it first.");
             } else {
                 restrictedDelete(path);
             }
@@ -408,7 +409,8 @@ public class Service {
     }
 
 
-    public static void dealCommitProcedure(Commit currentCommit, Stage stage, String message, List<String> parents) {
+    public static void dealCommitProcedure(Commit currentCommit, Stage stage,
+                                           String message, List<String> parents) {
         Map<String, String> addStage = stage.getAddStage();
         Map<String, String> removeStage = stage.getRemoveStage();
         Map<String, String> currentBlobs = currentCommit.getBlobs();
