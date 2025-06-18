@@ -78,7 +78,7 @@ public class Service {
 
     /**
      * 保存暂存区
-     * @param stage
+     * @param stage 暂存区对象
      */
     public static void saveStage(Stage stage) {
         writeObject(INDEX_FILE, stage);
@@ -361,11 +361,12 @@ public class Service {
         Commit currentCommit = getCurrentCommit();
         Map<String, String> curBlobs = currentCommit.getBlobs();
         List<String> allFilesInWorkDir = getAllFilesInWorkDir();
+        // 出现未跟踪文件将被覆盖，报错信息
+        String s = "There is an untracked file in the way; delete it, or add and commit it first.";
         for (String path : allFilesInWorkDir) {
             // 未跟踪的文件
             if (!curBlobs.containsKey(path) && blobs.containsKey(path)) {
-                exitWithError("There is an untracked file in the way; " +
-                        "delete it, or add and commit it first.");
+                exitWithError(s);
             } else {
                 restrictedDelete(path);
             }
@@ -409,11 +410,17 @@ public class Service {
     }
 
 
-    public static void dealCommitProcedure(Commit currentCommit, Stage stage,
-                                           String message, List<String> parents) {
+    /**
+     * 处理提交过程
+     * @param cur 当前提交
+     * @param stage 暂存区对象
+     * @param message 提交日志
+     * @param parents 父提交集合
+     */
+    public static void dealCommit(Commit cur, Stage stage, String message, List<String> parents) {
         Map<String, String> addStage = stage.getAddStage();
         Map<String, String> removeStage = stage.getRemoveStage();
-        Map<String, String> currentBlobs = currentCommit.getBlobs();
+        Map<String, String> currentBlobs = cur.getBlobs();
         if (addStage.isEmpty() && removeStage.isEmpty()) {
             exitWithError("No changes added to the commit.");
         }
@@ -432,5 +439,88 @@ public class Service {
         updateBranch(commit.getId(), getCurrentBranch());
         // 清空暂存区
         saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+    }
+
+
+    /**
+     * 处理文件合并
+     * @param sp 分叉点提交
+     * @param current 当前提交
+     * @param target 目标提交
+     * @param stage 暂存区对象
+     */
+    public static void dealFileMerge(Commit sp, Commit current, Commit target, Stage stage) {
+        Map<String, String> addStage = stage.getAddStage();
+        Map<String, String> removeStage = stage.getRemoveStage();
+        Map<String, String> splitPointBlobs = sp.getBlobs();
+        Map<String, String> currentBlobs = current.getBlobs();
+        Map<String, String> targetBlobs = target.getBlobs();
+        // 这里必须等所有错误都判断完后再执行文件的拷贝和删除
+        List<String> toCheckout = new ArrayList<>();
+        List<String> toDelete = new ArrayList<>();
+        List<String> conflicts = new ArrayList<>();
+        // 出现未跟踪文件将被合并覆盖或删除，报错信息
+        String s = "There is an untracked file in the way; delete it, or add and commit it first.";
+        for (String path : splitPointBlobs.keySet()) {
+            boolean currentHas = currentBlobs.containsKey(path);
+            boolean targetHas = targetBlobs.containsKey(path);
+            String spVal = splitPointBlobs.get(path);
+            String curVal = currentBlobs.get(path);
+            String tarVal = targetBlobs.get(path);
+            if (currentHas && targetHas) {
+                if (spVal.equals(curVal) && !spVal.equals(tarVal)) {
+                    // 分叉点之后给定分支修改的文件而当前分支未修改，将文件检出并暂存。
+                    toCheckout.add(path);
+                } else if (!spVal.equals(curVal) && !spVal.equals(tarVal)
+                        && !curVal.equals(tarVal)) {
+                    // 两个文件的内容都发生了变化且与对方不同，出现冲突
+                    conflicts.add(path);
+                }
+            } else if (currentHas) {
+                // 在分支点存在的任何文件，在当前分支未经修改，且在给定分支中不存在，则应被删除（并变为未跟踪状态）。
+                if (spVal.equals(curVal)) {
+                    toDelete.add(path);
+                } else {
+                    // 一个文件的内容发生了变化而另一个文件被删除，出现冲突
+                    conflicts.add(path);
+                }
+            } else if (targetHas && !spVal.equals(tarVal)) {
+                if (join(path).exists()) {
+                    exitWithError(s);
+                }
+                // 一个文件的内容发生了变化而另一个文件被删除，出现冲突
+                conflicts.add(path);
+            }
+        }
+        for (String path : targetBlobs.keySet()) {
+            boolean currentHas = currentBlobs.containsKey(path);
+            boolean splitPointHas = splitPointBlobs.containsKey(path);
+            String curVal = currentBlobs.get(path);
+            String tarVal = targetBlobs.get(path);
+            if (!splitPointHas && !currentHas) {
+                if (join(path).exists()) {
+                    exitWithError(s);
+                }
+                // 在分叉点不存在而仅在给定分支中存在的任何文件都应被检出并暂存。
+                toCheckout.add(path);
+            } else if (!splitPointHas) {
+                if (!tarVal.equals(curVal)) {
+                    // 该文件在分叉点时不存在，而在给定分支和当前分支中具有不同的内容，出现冲突
+                    conflicts.add(path);
+                }
+            }
+        }
+        // 所有校验结束，执行文件处理
+        for (String path : toCheckout) {
+            checkoutTargetBlobFromCommit(path, targetBlobs.get(path));
+            addStage.put(path, targetBlobs.get(path));
+        }
+        for (String path : toDelete) {
+            restrictedDelete(path);
+            removeStage.put(path, currentBlobs.get(path));
+        }
+        for (String path : conflicts) {
+            dealConflicts(currentBlobs.get(path), targetBlobs.get(path), path, stage);
+        }
     }
 }
