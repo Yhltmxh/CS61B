@@ -19,7 +19,12 @@ public enum Command {
     BRANCH("branch", "2"),
     REMOVE_BRANCH("rm-branch", "2"),
     RESET("reset", "2"),
-    MERGE("merge", "2");
+    MERGE("merge", "2"),
+    ADD_REMOTE("add-remote", "3"),
+    REMOVE_REMOTE("rm-remote", "2"),
+    PUSH("push", "3"),
+    FETCH("fetch", "3"),
+    PULL("pull", "3");
 
 
     private String command;

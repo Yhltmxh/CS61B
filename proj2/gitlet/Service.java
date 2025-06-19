@@ -24,10 +24,39 @@ public class Service {
     public static final File BLOBS_DIR = join(OBJECTS_DIR, "blobs");
     public static final File REFS_DIR = join(GITLET_DIR, "refs");
     public static final File HEADS_DIR = join(REFS_DIR, "heads");
+    public static final File REMOTES_DIR = join(REFS_DIR, "remotes");
     public static final File INDEX_FILE = join(GITLET_DIR, "index");
     public static final File HEAD_FILE = join(GITLET_DIR, "HEAD");
+    public static final File CONFIG_FILE = join(GITLET_DIR, "config");
+
+    public static File REMOTE_CWD;
+    public static File REMOTE_GITLET_DIR;
+    public static File REMOTE_OBJECTS_DIR;
+    public static File REMOTE_COMMITS_DIR;
+    public static File REMOTE_BLOBS_DIR;
+    public static File REMOTE_REFS_DIR;
+    public static File REMOTE_HEADS_DIR;
+    public static File REMOTE_INDEX_FILE;
+    public static File REMOTE_HEAD_FILE;
+    public static File REMOTE_CONFIG_FILE;
 
 
+    /**
+     * 初始化远程目录索引
+     * @param remoteDir 远程.gitlet目录
+     */
+    public static void initRemoteDirectory(File remoteDir) {
+        REMOTE_CWD = join(remoteDir.getParent());
+        REMOTE_GITLET_DIR = remoteDir;
+        REMOTE_OBJECTS_DIR = join(REMOTE_GITLET_DIR, "objects");
+        REMOTE_COMMITS_DIR = join(REMOTE_OBJECTS_DIR, "commits");
+        REMOTE_BLOBS_DIR = join(REMOTE_OBJECTS_DIR, "blobs");
+        REMOTE_REFS_DIR = join(REMOTE_GITLET_DIR, "refs");
+        REMOTE_HEADS_DIR = join(REMOTE_REFS_DIR, "heads");
+        REMOTE_INDEX_FILE = join(REMOTE_GITLET_DIR, "index");
+        REMOTE_HEAD_FILE = join(REMOTE_GITLET_DIR, "HEAD");
+        REMOTE_CONFIG_FILE = join(REMOTE_GITLET_DIR, "config");
+    }
 
 
     /**
@@ -46,6 +75,7 @@ public class Service {
         writeObject(commitFile, commit);
     }
 
+
     /**
      * 保存分支
      * @param branchName 分支名
@@ -58,6 +88,7 @@ public class Service {
         writeContents(branch, commitId);
         return branch;
     }
+
 
     /**
      * 普通文件转存为blob
@@ -76,6 +107,7 @@ public class Service {
         }
     }
 
+
     /**
      * 保存暂存区
      * @param stage 暂存区对象
@@ -84,14 +116,31 @@ public class Service {
         writeObject(INDEX_FILE, stage);
     }
 
+
+    /**
+     * 保存配置
+     * @param config 配置对象
+     */
+    public static void saveConfig(Config config) {
+        writeObject(CONFIG_FILE, config);
+    }
+
+
     /**
      * 更新HEAD
      * @param point 要指向的分支名（本项目没有分离头的状态）
      */
     public static void updateHead(String point) {
-        Path base = Paths.get("refs").resolve("heads");
+        Path base = Paths.get("refs");
+        String[] s = point.split("/");
+        if (s.length > 1) {
+            base = base.resolve("remotes");
+        } else {
+            base = base.resolve("heads");
+        }
         writeContents(HEAD_FILE, String.format("ref: %s", base.resolve(point)));
     }
+
 
     /**
      * 更新分支
@@ -99,8 +148,29 @@ public class Service {
      * @param branch 分支文件
      */
     public static void updateBranch(String commitId, File branch) {
+        if (!branch.exists()) {
+            createFile(branch);
+        }
         writeContents(branch, commitId);
     }
+
+
+    /**
+     * 更新commit对象中blob的工作目录
+     * @param targetCWD 目标地址
+     * @param commit 提交对象
+     */
+    public static void updateBlobsPathInCommit(File targetCWD, Commit commit) {
+        Map<String, String> newBlobs = new TreeMap<>();
+        Map<String, String> blobs = commit.getBlobs();
+        for (String path : blobs.keySet()) {
+            String filename = join(path).getName();
+            String blobId = blobs.get(path);
+            newBlobs.put(join(targetCWD, filename).getPath(), blobId);
+        }
+        commit.setBlobs(newBlobs);
+    }
+
 
     /**
      * 获取当前分支的文件对象
@@ -111,6 +181,7 @@ public class Service {
         String head = readContentsAsString(HEAD_FILE);
         return join(GITLET_DIR, head.substring(5));
     }
+
 
     /**
      * 获取所有分支文件名
@@ -127,14 +198,33 @@ public class Service {
      * @param branchName 分支名
      * @return 存在：提交对象，不存在：null
      */
-    public static Commit getBranchHeadByName(String branchName) {
-        File branchFile = join(HEADS_DIR, branchName);
+    public static Commit getBranchHeadByName(File headsDir, File commitsDir, String branchName) {
+        File branchFile = join(headsDir, branchName);
         if (!branchFile.exists()) {
             return null;
         }
         String commitId = readContentsAsString(branchFile);
-        File headCommit = join(COMMITS_DIR, commitId.substring(0, 2), commitId.substring(2));
+        File headCommit = join(commitsDir, commitId.substring(0, 2), commitId.substring(2));
         return readObject(headCommit, Commit.class);
+    }
+
+
+    public static Commit getBranchHeadByName(String branchName) {
+        String[] s = branchName.split("/");
+        if (s.length > 1) {
+            return getBranchHeadByName(join(REMOTES_DIR, s[0]), COMMITS_DIR, s[1]);
+        }
+        return getBranchHeadByName(HEADS_DIR, COMMITS_DIR, branchName);
+    }
+
+
+    /**
+     * 根据远程分支名获取分支头部的提交
+     * @param branchName 分支名
+     * @return 存在：提交对象，不存在：null
+     */
+    public static Commit getRemoteBranchHeadByName(String branchName) {
+        return getBranchHeadByName(REMOTE_HEADS_DIR, REMOTE_COMMITS_DIR, branchName);
     }
 
 
@@ -236,6 +326,51 @@ public class Service {
     }
 
 
+    /**
+     * 获取同一分支上的两个给定提交之间的提交
+     * @param current 当前提交
+     * @param target 目标提交
+     * @return 提交集合
+     */
+    public static List<Commit> getCommitList(Commit current, Commit target) {
+        List<Commit> res = new ArrayList<>();
+        Queue<Commit> queue = new ArrayDeque<>();
+        // bfs 遍历当前分支的历史
+        queue.offer(current);
+        while (!queue.isEmpty()) {
+            Commit c = queue.poll();
+            if (c.getId().equals(target.getId())) {
+                return res;
+            } else {
+                res.add(c);
+            }
+            for (String parent : c.getParents()) {
+                queue.offer(getCommitById(parent));
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * 获取给定提交所在分支的历史提交
+     * @param current 当前提交
+     * @return 提交集合
+     */
+    public static List<Commit> getCommitList(Commit current) {
+        List<Commit> res = new ArrayList<>();
+        Queue<Commit> queue = new ArrayDeque<>();
+        queue.offer(current);
+        while (!queue.isEmpty()) {
+            Commit c = queue.poll();
+            res.add(c);
+            for (String parent : c.getParents()) {
+                queue.offer(getCommitById(parent));
+            }
+        }
+        return res;
+    }
+
 
     /**
      * 获取所有的提交id
@@ -264,15 +399,21 @@ public class Service {
     }
 
 
-
-
-
     /**
      * 获取暂存区对象
      * @return 暂存区对象
      */
     public static Stage getStage() {
         return readObject(INDEX_FILE, Stage.class);
+    }
+
+
+    /**
+     * 获取配置
+     * @return 配置对象
+     */
+    public static Config getConfig() {
+        return readObject(CONFIG_FILE, Config.class);
     }
 
 
@@ -321,6 +462,16 @@ public class Service {
             message(item);
         }
         System.out.println();
+    }
+
+
+    /**
+     * 判断是否为远程拉取的分支
+     * @param file 分支文件
+     * @return true：是，false：不是
+     */
+    public static boolean isRemoteBranch(File file) {
+        return file.getParentFile().getParentFile().equals(REMOTES_DIR);
     }
 
 
@@ -378,7 +529,7 @@ public class Service {
             copyFile(blobFile, join(path));
         }
         // 清空暂存区
-        saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+        saveStage(new Stage(new TreeMap<>(), new TreeMap<>()));
     }
 
 
@@ -438,7 +589,7 @@ public class Service {
         // 更新当前分支
         updateBranch(commit.getId(), getCurrentBranch());
         // 清空暂存区
-        saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+        saveStage(new Stage(new TreeMap<>(), new TreeMap<>()));
     }
 
 
@@ -523,4 +674,115 @@ public class Service {
             dealConflicts(currentBlobs.get(path), targetBlobs.get(path), path, stage);
         }
     }
+
+
+    /**
+     * 进行远程分支的检查
+     * @param remoteName 远程仓库名
+     */
+    public static void remoteBranchCheck(String remoteName) {
+        Config config = getConfig();
+        Map<String, String> remoteConfig = config.getRemoteConfig();
+        if (!remoteConfig.containsKey(remoteName)) {
+            exitWithError("A remote with that name does not exist.");
+        }
+        String remoteDirectory = remoteConfig.get(remoteName);
+        File dir = join(remoteDirectory);
+        if (!dir.exists()) {
+            exitWithError("Remote directory not found.");
+        }
+        initRemoteDirectory(dir);
+    }
+
+
+    /**
+     * 文件传输
+     * @param sourceCommitsDir 源地址
+     * @param targetCommitsDir 目标地址
+     * @param id 文件id
+     */
+    public static void transferFile(File sourceCommitsDir, File targetCommitsDir, String id) {
+        File prefixDir = join(targetCommitsDir, id.substring(0, 2));
+        File source = join(sourceCommitsDir, id.substring(0, 2), id.substring(2));
+        File target = join(prefixDir, id.substring(2));
+        if (!prefixDir.exists()) {
+            createDirectory(prefixDir);
+        }
+        if (!target.exists()) {
+            copyFile(source, target);
+        }
+    }
+
+
+    /**
+     * 传输提交
+     * @param targetDir 目标地址
+     * @param commit 提交对象
+     */
+    public static void transferCommit(File targetDir, Commit commit) {
+        String id = commit.getId();
+        File prefixDir = join(targetDir, id.substring(0, 2));
+        File target = join(prefixDir, id.substring(2));
+        if (!prefixDir.exists()) {
+            createDirectory(prefixDir);
+        }
+        if (!target.exists()) {
+            createFile(target);
+            writeObject(target, commit);
+        }
+    }
+
+
+    /**
+     * 处理远程推送和拉取过程中的文件传输
+     * @param commits 提交集合
+     * @param cwd 目标工作目录
+     * @param commitsDir 存储提交对象的目标地址
+     * @param sourceBlobsDir 存储blob对象的源地址
+     * @param blobsDir 存储blob对象的目标地址
+     */
+    public static void dealTransfer(List<Commit> commits, File cwd, File commitsDir,
+                                    File sourceBlobsDir, File blobsDir) {
+        for (Commit commit : commits) {
+            updateBlobsPathInCommit(cwd, commit);
+            String id = commit.getId();
+            File commitFile = join(commitsDir, id.substring(0, 2), id.substring(2));
+            if (commitFile.exists()) {
+                continue;
+            } else {
+                transferCommit(commitsDir, commit);
+            }
+            Map<String, String> blobs = commit.getBlobs();
+            for (String path : blobs.keySet()) {
+                transferFile(sourceBlobsDir, blobsDir, blobs.get(path));
+            }
+        }
+    }
+
+
+    /**
+     * 处理推送过程
+     * @param commits 提交集合
+     * @param currentId 当前分支头部提交的id
+     * @param branchName 要推送的分支名
+     */
+    public static void dealPush(List<Commit> commits, String currentId, String branchName) {
+        dealTransfer(commits, REMOTE_CWD, REMOTE_COMMITS_DIR, BLOBS_DIR, REMOTE_BLOBS_DIR);
+        updateBranch(currentId, join(REMOTE_HEADS_DIR, branchName));
+    }
+
+
+    /**
+     * 处理拉取过程
+     * @param commits 提交集合
+     * @param currentId 要拉取的远程分支头部提交的id
+     * @param branchName 远程分支名
+     * @param remoteName 远程仓库名
+     */
+    public static void dealFetch(List<Commit> commits, String currentId,
+                                 String branchName, String remoteName) {
+        dealTransfer(commits, CWD, COMMITS_DIR, REMOTE_BLOBS_DIR, BLOBS_DIR);
+        updateBranch(currentId, join(REMOTES_DIR, remoteName, branchName));
+    }
+
 }

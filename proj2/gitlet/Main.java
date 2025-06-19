@@ -22,6 +22,11 @@ public class Main {
             case REMOVE_BRANCH -> doRemoveBranch(args[1]);
             case RESET -> doReset(args[1]);
             case MERGE -> doMerge(args[1]);
+            case ADD_REMOTE -> doAddRemote(args[1], args[2]);
+            case REMOVE_REMOTE -> doRemoveRemote(args[1]);
+            case PUSH -> doPush(args[1], args[2]);
+            case FETCH -> doFetch(args[1], args[2]);
+            case PULL -> doPull(args[1], args[2]);
         }
     }
 }

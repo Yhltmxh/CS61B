@@ -54,12 +54,16 @@ public class Repository {
         createDirectory(BLOBS_DIR);
         createDirectory(REFS_DIR);
         createDirectory(HEADS_DIR);
+        createDirectory(REMOTES_DIR);
+        createFile(CONFIG_FILE);
         createFile(INDEX_FILE);
         createFile(HEAD_FILE);
         // index文件初始化
-        saveStage(new Stage(new HashMap<>(), new HashMap<>()));
+        saveStage(new Stage(new TreeMap<>(), new TreeMap<>()));
+        // config文件初始化
+        saveConfig(new Config(new TreeMap<>()));
         // 创建初始提交
-        Commit init = new Commit("initial commit", new Date(0), new ArrayList<>(), new HashMap<>());
+        Commit init = new Commit("initial commit", new Date(0), new ArrayList<>(), new TreeMap<>());
         saveCommit(init);
         // 创建master分支
         File master = saveBranch("master", init.getId());
@@ -253,8 +257,16 @@ public class Repository {
     public static void doCheckout(String[] args) {
         if (args.length == 2) {
             // 要检出的分支为当前分支
-            if (getCurrentBranch().getName().equals(args[1])) {
-                exitWithError("No need to checkout the current branch.");
+            File currentBranch = getCurrentBranch();
+            String[] s = args[1].split("/");
+            if (isRemoteBranch(currentBranch)) {
+                if (s.length > 1 && join(REMOTES_DIR, args[0], args[1]).equals(currentBranch)) {
+                    exitWithError("No need to checkout the current branch.");
+                }
+            } else {
+                if (s.length == 1 && currentBranch.getName().equals(args[1])) {
+                    exitWithError("No need to checkout the current branch.");
+                }
             }
             Commit branchHead = getBranchHeadByName(args[1]);
             if (branchHead == null) {
@@ -358,5 +370,68 @@ public class Repository {
             String message = String.format("Merged %s into %s.", branchName, currentBranchName);
             dealCommit(current, stage, message, parents);
         }
+    }
+
+
+    public static void doAddRemote(String remoteName, String remoteDirectory) {
+        Config config = getConfig();
+        Map<String, String> remoteConfig = config.getRemoteConfig();
+        if (remoteConfig.containsKey(remoteName)) {
+            exitWithError("A remote with that name already exists.");
+        }
+        remoteConfig.put(remoteName, remoteDirectory.replace("/", File.separator));
+        saveConfig(config);
+        createDirectory(join(REMOTES_DIR, remoteName));
+    }
+
+
+    public static void doRemoveRemote(String remoteName) {
+        Config config = getConfig();
+        Map<String, String> remoteConfig = config.getRemoteConfig();
+        if (!remoteConfig.containsKey(remoteName)) {
+            exitWithError("A remote with that name does not exist.");
+        }
+        remoteConfig.remove(remoteName);
+        saveConfig(config);
+    }
+
+
+    public static void doPush(String remoteName, String remoteBranchName) {
+        remoteBranchCheck(remoteName);
+        Commit currentCommit = getCurrentCommit();
+        Commit remoteBranch = getRemoteBranchHeadByName(remoteBranchName);
+        List<Commit> pushCommitList;
+        if (remoteBranch == null) {
+            pushCommitList = getCommitList(currentCommit);
+        } else {
+            pushCommitList = getCommitList(currentCommit, remoteBranch);
+        }
+        if (pushCommitList == null || pushCommitList.isEmpty()) {
+            exitWithError("Please pull down remote changes before pushing.");
+        } else {
+            dealPush(pushCommitList, currentCommit.getId(), remoteBranchName);
+        }
+    }
+
+
+    public static void doFetch(String remoteName, String remoteBranchName) {
+        remoteBranchCheck(remoteName);
+        Commit remoteBranch = getRemoteBranchHeadByName(remoteBranchName);
+
+        List<Commit> fetchCommitList = null;
+        if (remoteBranch == null) {
+            exitWithError("That remote does not have that branch.");
+        } else {
+            fetchCommitList = getCommitList(remoteBranch);
+        }
+        if (fetchCommitList != null && !fetchCommitList.isEmpty()) {
+            dealFetch(fetchCommitList, remoteBranch.getId(), remoteBranchName, remoteName);
+        }
+    }
+
+
+    public static void doPull(String remoteName, String remoteBranchName) {
+        doFetch(remoteName, remoteBranchName);
+        doMerge(remoteName + "/" + remoteBranchName);
     }
 }
