@@ -29,16 +29,16 @@ public class Service {
     public static final File HEAD_FILE = join(GITLET_DIR, "HEAD");
     public static final File CONFIG_FILE = join(GITLET_DIR, "config");
 
-    public static File REMOTE_CWD;
-    public static File REMOTE_GITLET_DIR;
-    public static File REMOTE_OBJECTS_DIR;
-    public static File REMOTE_COMMITS_DIR;
-    public static File REMOTE_BLOBS_DIR;
-    public static File REMOTE_REFS_DIR;
-    public static File REMOTE_HEADS_DIR;
-    public static File REMOTE_INDEX_FILE;
-    public static File REMOTE_HEAD_FILE;
-    public static File REMOTE_CONFIG_FILE;
+    static File REMOTE_CWD;
+    static File REMOTE_GITLET_DIR;
+    static File REMOTE_OBJECTS_DIR;
+    static File REMOTE_COMMITS_DIR;
+    static File REMOTE_BLOBS_DIR;
+    static File REMOTE_REFS_DIR;
+    static File REMOTE_HEADS_DIR;
+    static File REMOTE_INDEX_FILE;
+    static File REMOTE_HEAD_FILE;
+    static File REMOTE_CONFIG_FILE;
 
 
     /**
