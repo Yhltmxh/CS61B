@@ -1,0 +1,34 @@
+BucketsSpeedTest:
+What would you like L to be?: 10
+Enter # strings to insert into each map: 10000000
+class hashmap.MyHashMapALBuckets: 6.88 sec
+class hashmap.MyHashMapLLBuckets: 6.80 sec
+class hashmap.MyHashMapTSBuckets: 10.57 sec
+class hashmap.MyHashMapHSBuckets: 12.72 sec
+class hashmap.MyHashMapPQBuckets: 10.54 sec
+
+
+InsertInOrderSpeedTest:
+Enter # strings to insert into hashmap.ULLMap: 10000000
+--Stack Overflow -- couldn't add 10000000 strings.
+
+Enter # strings to insert into hashmap.MyHashMap: 10000000
+class hashmap.MyHashMap: 3.17 sec
+
+Enter # strings to insert into Java's HashMap: 10000000
+Java's Built-in HashMap: 2.22 sec
+
+
+InsertRandomSpeedTest:
+What would you like L to be?: 10
+
+Enter # strings to insert into hashmap.ULLMap: 10000000
+--Stack Overflow -- couldn't add 10000000 strings of length 10.
+
+Enter # strings to insert into your hashmap.MyHashMap: 10000000
+class hashmap.MyHashMap: 6.89 sec
+
+Enter # strings to insert into Java's HashMap: 10000000
+Java's Built-in HashMap: 3.52 sec
+
+Would you like to try more timed-tests? (y/n)
