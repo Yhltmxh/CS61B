@@ -11,6 +11,6 @@ import byow.TileEngine.Tileset;
 public class Hallway extends RectArea {
 
     public Hallway(int x, int y) {
-        super(3, 3, x, y, Tileset.WALL, Tileset.FLOOR);
+        super(3, 3, x, y, Tileset.WALL, Tileset.AVATAR);
     }
 }
