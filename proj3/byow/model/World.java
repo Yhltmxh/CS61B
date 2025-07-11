@@ -225,73 +225,6 @@ public class World {
         return true;
     }
 
-    private boolean checkPath(RectArea source, RectArea target, int toward) {
-        // todo: 优化结构
-        int x = source.getX(), y = source.getY(), tx = target.getX(), ty = target.getY();
-        switch(toward) {
-            case 0 -> {
-                if (source instanceof Hallway && target instanceof Room) {
-                    y += 1; ty = ty - target.getHeight() + 1;
-                } else if (source instanceof Room) {
-                    x = tx; ty -= 1;
-                } else {
-                    y += 1; ty -= 1;
-                }
-                for (int i = y + 1; i < ty; i ++) {
-                    if (!worldMap[x][i].equals(Tileset.NOTHING) || !worldMap[x - 1][i].equals(Tileset.NOTHING)
-                            || !worldMap[x + 1][i].equals(Tileset.NOTHING)) {
-                        return false;
-                    }
-                }
-            }
-            case 1 -> {
-                if (source instanceof Hallway && target instanceof Room) {
-                    x += 1;
-                } else if (source instanceof Room) {
-                    y = ty; x = x + source.getWidth() - 1; tx -= 1;
-                } else {
-                    x += 1; tx -= 1;
-                }
-                for (int i = x + 1; i < tx; i ++) {
-                    if (!worldMap[i][y].equals(Tileset.NOTHING) || !worldMap[i][y + 1].equals(Tileset.NOTHING)
-                            || !worldMap[i][y - 1].equals(Tileset.NOTHING)) {
-                        return false;
-                    }
-                }
-            }
-            case 2 -> {
-                if (source instanceof Hallway && target instanceof Room) {
-                    y -= 1;
-                } else if (source instanceof Room) {
-                    x = tx; y = y - source.getHeight() + 1; ty += 1;
-                } else {
-                    y -= 1; ty += 1;
-                }
-                for (int i = y - 1; i > ty; i --) {
-                    if (!worldMap[x][i].equals(Tileset.NOTHING) || !worldMap[x - 1][i].equals(Tileset.NOTHING)
-                            || !worldMap[x + 1][i].equals(Tileset.NOTHING)) {
-                        return false;
-                    }
-                }
-            }
-            case 3 -> {
-                if (source instanceof Hallway && target instanceof Room) {
-                    x -= 1; tx = tx + target.getWidth() - 1;
-                } else if (source instanceof Room) {
-                    y = ty; tx += 1;
-                } else {
-                    x -= 1; tx += 1;
-                }
-                for (int i = x - 1; i > tx; i --) {
-                    if (!worldMap[i][y].equals(Tileset.NOTHING) || !worldMap[i][y + 1].equals(Tileset.NOTHING)
-                            || !worldMap[i][y - 1].equals(Tileset.NOTHING)) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
 
     /**
      * 绘制给定区域
@@ -318,86 +251,90 @@ public class World {
 
     /**
      * 连接两个区域
-     * @param source 源区域，必须为走廊
+     * @param source 源区域
      * @param target 目标区域
      * @param toward 源区域相对目标区域的朝向
      */
     private void connectRectArea(RectArea source, RectArea target, int toward) {
-        if (!(source instanceof Hallway) && !(target instanceof Hallway)) {
-            throw new RuntimeException("given area have not Hallway");
-        }
         source.getNearArea()[toward] = target;
-        // 若source不为Hallway，则将两对象调换，并将朝向反转
-        if (!(source instanceof Hallway)) {
-            RectArea temp = source;
-            source = target;
-            target = temp;
-            toward = reverseToward(toward);
+        drawPath(getPathArgs(source, target, toward));
+    }
+
+
+    /**
+     * 检查两区域间的道路是否通畅
+     * @param source 源区域
+     * @param target 目标区域
+     * @param toward 朝向
+     * @return true：无障碍，false：有障碍
+     */
+    private boolean checkPath(RectArea source, RectArea target, int toward) {
+        int[] args = getPathArgs(source, target, toward);
+        int t1 = args[0], t2 = args[1], k = args[2], newToward = args[3];
+        for (int i = t1 + 1; i < t2; i ++) {
+            for (int j = -1; j < 2; j ++) {
+                int a = k + j, b = i;
+                if (newToward == 1 || newToward == 3) {
+                    a = i; b = k + j;
+                }
+                if (!worldMap[a][b].equals(Tileset.NOTHING)) {
+                    return false;
+                }
+            }
         }
-        int x = source.getX(), y = source.getY(), tx = target.getX(), ty = target.getY();
-        int tw = target.getWidth(), th = target.getHeight();
-        if (target instanceof Hallway) {
-            tx -= 1; ty += 1;
-        }
-        switch(toward) {
-            case 0 -> drawPath(y + 1, ty - th + 1, x, toward);
-            case 1 -> drawPath(x + 1, tx, y, toward);
-            case 2 -> drawPath(ty, y - 1, x, toward);
-            case 3 -> drawPath(tx + tw - 1, x - 1, y, toward);
+        return true;
+    }
+
+
+    /**
+     * 绘制路径
+     * @param args 参数数组
+     */
+    private void drawPath(int[] args) {
+        int t1 = args[0], t2 = args[1], k = args[2], toward = args[3];
+        for (int i = t1; i <= t2; i ++) {
+            if (toward == 0 || toward == 2) {
+                worldMap[k][i] = Tileset.FLOOR;
+                worldMap[k - 1][i] = Tileset.WALL;
+                worldMap[k + 1][i] = Tileset.WALL;
+            } else {
+                worldMap[i][k] = Tileset.FLOOR;
+                worldMap[i][k + 1] = Tileset.WALL;
+                worldMap[i][k - 1] = Tileset.WALL;
+            }
         }
     }
 
 
-//    private int[] getPathArg(RectArea source, RectArea target, int toward) {
-//        if (!(source instanceof Hallway) && !(target instanceof Hallway)) {
-//            throw new RuntimeException("given area have not Hallway");
-//        }
-//        source.getNearArea()[toward] = target;
-//        // 若source不为Hallway，则将两对象调换，并将朝向反转
-//        if (!(source instanceof Hallway)) {
-//            RectArea temp = source;
-//            source = target;
-//            target = temp;
-//            toward = reverseToward(toward);
-//        }
-//        int x = source.getX(), y = source.getY(), tx = target.getX(), ty = target.getY();
-//        int tw = target.getWidth(), th = target.getHeight();
-//        if (target instanceof Hallway) {
-//            tx -= 1; ty += 1;
-//        }
-//        return switch(toward) {
-//            case 0 -> new int[] {y + 1, ty - th + 1, x, toward};
-//            case 1 -> new int[] {x + 1, tx, y, toward};
-//            case 2 -> new int[] {ty, y - 1, x, toward};
-//            case 3 -> new int[] {tx + tw - 1, x - 1, y, toward};
-//            default -> null;
-//        };
-//    }
-
     /**
-     * 绘制路径
-     * @param t1 源点
-     * @param t2 目标点
-     * @param k 由朝向确定的固定值
+     * 获取道路参数
+     * @param source 源区域
+     * @param target 目标区域
      * @param toward 朝向
+     * @return 参数数组
      */
-    private void drawPath(int t1, int t2, int k, int toward) {
-        switch(toward) {
-            case 0, 2 -> {
-                for (int i = t1; i <= t2; i ++) {
-                    worldMap[k][i] = Tileset.FLOOR;
-                    worldMap[k - 1][i] = Tileset.WALL;
-                    worldMap[k + 1][i] = Tileset.WALL;
-                }
-            }
-            case 1, 3 -> {
-                for (int i = t1; i <= t2; i ++) {
-                    worldMap[i][k] = Tileset.FLOOR;
-                    worldMap[i][k + 1] = Tileset.WALL;
-                    worldMap[i][k - 1] = Tileset.WALL;
-                }
-            }
+    private int[] getPathArgs(RectArea source, RectArea target, int toward) {
+        if (!(source instanceof Hallway) && !(target instanceof Hallway)) {
+            throw new RuntimeException("given area have not Hallway");
         }
+        RectArea s = source, t = target;
+        // 若source不为Hallway，则将两对象调换，并将朝向反转
+        if (!(source instanceof Hallway)) {
+            s = target; t = source;
+            toward = reverseToward(toward);
+        }
+        int x = s.getX(), y = s.getY(), tx = t.getX(), ty = t.getY();
+        int tw = t.getWidth(), th = t.getHeight();
+        if (t instanceof Hallway) {
+            tx -= 1; ty += 1;
+        }
+        return switch(toward) {
+            case 0 -> new int[] {y + 1, ty - th + 1, x, toward};
+            case 1 -> new int[] {x + 1, tx, y, toward};
+            case 2 -> new int[] {ty, y - 1, x, toward};
+            case 3 -> new int[] {tx + tw - 1, x - 1, y, toward};
+            default -> null;
+        };
     }
 
 
