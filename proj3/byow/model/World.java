@@ -125,31 +125,23 @@ public class World {
             return null;
         }
         int sx = source.getX(), sy = source.getY();
-        int tx = sx, ty = sy, tw = 0, th = 0;
+        int tx = sx, ty = sy, tw = getRoomSize(), th = getRoomSize();
         switch(toward) {
             case 0 -> {
-                tx = RandomUtils.uniform(random, sx - 5, sx);
-                ty = RandomUtils.uniform(random, sy + 5, sy + 10);
-                tw = RandomUtils.uniform(random, Math.min(sx + 5, width) - tx);
-                th = RandomUtils.uniform(random, Math.max(3, ty - sy));
+                tx = RandomUtils.uniform(random, sx - tw + 2, sx);
+                ty = RandomUtils.uniform(random, sy + th + 2, sy + th + 7);
             }
             case 1 -> {
-                tx = RandomUtils.uniform(random, sx + 1, Math.min(sx + 10, width));
-                ty = RandomUtils.uniform(random, sy, Math.min(sy + 5, height));
-                tw = RandomUtils.uniform(random, Math.min(tx + 10, width) - tx);
-                th = RandomUtils.uniform(random, Math.max(3, ty));
+                tx = RandomUtils.uniform(random, sx + tw + 2, sx + tw + 7);
+                ty = RandomUtils.uniform(random, sy + 1, sy + th - 1);
             }
             case 2 -> {
-                tx = RandomUtils.uniform(random, sx - 5, sx);
-                ty = RandomUtils.uniform(random, sy - 10, sy - 5);
-                tw = RandomUtils.uniform(random, Math.min(sx + 5, width) - tx);
-                th = RandomUtils.uniform(random, Math.max(3, ty));
+                tx = RandomUtils.uniform(random, sx - tw + 2, sx);
+                ty = RandomUtils.uniform(random, sy - 6, sy - 1);
             }
             case 3 -> {
-                tx = RandomUtils.uniform(random, sx - 10, sx - 1);
-                ty = RandomUtils.uniform(random, sy, Math.min(sy + 5, height));
-                tw = RandomUtils.uniform(random, sx - tx);
-                th = RandomUtils.uniform(random, Math.max(3, ty));
+                tx = RandomUtils.uniform(random, sx - tw - 6, sx - tw);
+                ty = RandomUtils.uniform(random, sy + 1, sy + th - 1);
             }
         }
         return new Room(tw, th, tx, ty);
@@ -169,28 +161,28 @@ public class World {
         if (source instanceof Room) {
             switch(toward) {
                 case 0 -> {
-                    tx = RandomUtils.uniform(random, sx + 1, sx + sw);
-                    ty = RandomUtils.uniform(random, sy + 5, sy + 10);
+                    tx = RandomUtils.uniform(random, sx + 1, sx + sw - 1);
+                    ty = RandomUtils.uniform(random, sy + 3, sy + 6);
                 }
                 case 1 -> {
-                    tx = RandomUtils.uniform(random, sx + sw + 4, sx + sw + 9);
+                    tx = RandomUtils.uniform(random, sx + sw + 2, sx + sw + 5);
                     ty = RandomUtils.uniform(random, sy - sh + 2, sy);
                 }
                 case 2 -> {
-                    tx = RandomUtils.uniform(random, sx + 1, sx + sw);
-                    ty = RandomUtils.uniform(random, sy - sh - 9, sy - sh - 4);
+                    tx = RandomUtils.uniform(random, sx + 1, sx + sw - 1);
+                    ty = RandomUtils.uniform(random, sy - sh - 5, sy - sh - 2);
                 }
                 case 3 -> {
-                    tx = RandomUtils.uniform(random, sx - 10, sx - 5);
+                    tx = RandomUtils.uniform(random, sx - 6, sx - 3);
                     ty = RandomUtils.uniform(random, sy - sh + 2, sy);
                 }
             }
         } else if (source instanceof Hallway) {
             switch(toward) {
-                case 0 -> ty = RandomUtils.uniform(random, sy + 5, sy + 10);
-                case 1 -> tx = RandomUtils.uniform(random, sx + 5, sx + 10);
-                case 2 -> ty = RandomUtils.uniform(random, sy - 10, sy - 5);
-                case 3 -> tx = RandomUtils.uniform(random, sx - 10, sx - 5);
+                case 0 -> ty = RandomUtils.uniform(random, sy + 3, sy + 6);
+                case 1 -> tx = RandomUtils.uniform(random, sx + 3, sx + 6);
+                case 2 -> ty = RandomUtils.uniform(random, sy - 6, sy - 3);
+                case 3 -> tx = RandomUtils.uniform(random, sx - 6, sx - 3);
             }
         }
         return new Hallway(tx, ty);
@@ -349,6 +341,10 @@ public class World {
             case 1, 3 -> 4 - toward;
             default -> throw new IllegalArgumentException("toward error");
         };
+    }
+
+    private int getRoomSize() {
+        return RandomUtils.uniform(random, 4, 10);
     }
 
     public int getWidth() {

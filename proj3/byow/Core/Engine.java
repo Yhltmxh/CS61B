@@ -8,8 +8,8 @@ import byow.model.World;
 public class Engine {
     TERenderer ter = new TERenderer();
     /* Feel free to change the width and height. */
-    public static final int WIDTH = 100;
-    public static final int HEIGHT = 60;
+    public static final int WIDTH = 80;
+    public static final int HEIGHT = 30;
 
     /**
      * Method used for exploring a fresh world. This method should handle all inputs,

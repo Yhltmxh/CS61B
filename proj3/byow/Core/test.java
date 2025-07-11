@@ -13,6 +13,6 @@ public class test {
         Engine engine = new Engine();
         TERenderer ter = new TERenderer();
         ter.initialize(Engine.WIDTH, Engine.HEIGHT);
-        ter.renderFrame(engine.interactWithInputString("N20250709S"));
+        ter.renderFrame(engine.interactWithInputString("N20250711S"));
     }
 }
