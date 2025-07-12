@@ -40,7 +40,8 @@ public class Engine {
      * @return the 2D TETile[][] representing the state of the world
      */
     public TETile[][] interactWithInputString(String input) {
-        String seed = input.substring(1).split("S")[0];
+        String seed = input.substring(1, input.length() - 1);
+        System.out.println(seed);
         World world = new World(WIDTH, HEIGHT, Long.parseLong(seed));
         return world.getWorldMap();
     }
