@@ -67,6 +67,7 @@ public class MemoryGame {
     public void drawFrame(String s, String action, int round) {
         StdDraw.clear(StdDraw.BLACK);
         StdDraw.setPenColor(StdDraw.WHITE);
+
         StdDraw.line(0, height - 3, width, height - 3);
         StdDraw.setFont(new Font("Monaco", Font.BOLD, 30));
         StdDraw.text(width / 2.0, height / 2.0, s);
