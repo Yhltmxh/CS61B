@@ -1,6 +1,7 @@
 package byow.Core;
 
 import byow.TileEngine.TERenderer;
+import byow.TileEngine.TETile;
 import byow.lab12.HexWorld;
 
 /**
@@ -11,8 +12,14 @@ import byow.lab12.HexWorld;
 public class test {
     public static void main(String[] args) {
         Engine engine = new Engine();
-        TERenderer ter = new TERenderer();
-        ter.initialize(Engine.WIDTH, Engine.HEIGHT);
-        ter.renderFrame(engine.interactWithInputString("N20250711S"));
+        TETile[][] world = engine.interactWithInputString("LD:Q");
+        int xl = world.length, yl = world[0].length;
+        for (int i = yl - 1; i >= 0; i --) {
+            for (int j = 0; j < xl; j ++) {
+                System.out.print(world[j][i].character());
+                System.out.print(" ");
+            }
+            System.out.println();
+        }
     }
 }

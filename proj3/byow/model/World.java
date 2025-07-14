@@ -4,6 +4,7 @@ import byow.Core.RandomUtils;
 import byow.TileEngine.TETile;
 import byow.TileEngine.Tileset;
 
+import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.Random;
@@ -13,7 +14,7 @@ import java.util.Random;
  * @author: 杨怀龙
  * @create: 2025-07-09 16:19
  **/
-public class World {
+public class World implements Serializable {
 
     /**
      * 世界宽度
@@ -40,12 +41,15 @@ public class World {
      */
     private final TETile[][] worldMap;
 
+    private final Avatar avatar;
+
     public World(int width, int height, long seed) {
         this.width = width;
         this.height = height;
         this.seed = seed;
         random = new Random(seed);
         worldMap = new TETile[width][height];
+        avatar = new Avatar(0, 0);
         initWorldMap();
         generateWorld();
     }
@@ -72,6 +76,7 @@ public class World {
         int oy = RandomUtils.uniform(random, originHeight, height);
         Room origin = new Room(originWidth, originHeight, ox, oy);
         drawRectArea(origin);
+
         // 由源点bfs生成其他区域
         Queue<RectArea> q = new ArrayDeque<>();
         q.offer(origin);
@@ -89,6 +94,12 @@ public class World {
                 }
             }
         }
+
+        // 生成玩家初始位置
+        int ax = RandomUtils.uniform(random, ox + 1, ox + originWidth - 1);
+        int ay = RandomUtils.uniform(random, oy - originHeight + 2, oy);
+        avatar.setCoordinate(ax, ay);
+        worldMap[ax][ay] = avatar.getTile();
     }
 
 
@@ -343,8 +354,30 @@ public class World {
         };
     }
 
+
     private int getRoomSize() {
         return RandomUtils.uniform(random, 4, 10);
+    }
+
+
+    /**
+     * 玩家移动
+     * @param op 移动操作
+     */
+    public void moveAvatar(char op) {
+        int ax = avatar.getX(), ay = avatar.getY();
+        int tx = ax, ty = ay;
+        switch (op) {
+            case 'w' -> ay += 1;
+            case 's' -> ay -= 1;
+            case 'a' -> ax -= 1;
+            case 'd' -> ax += 1;
+        }
+        if (!worldMap[ax][ay].equals(Tileset.WALL)) {
+            worldMap[tx][ty] = Tileset.FLOOR;
+            worldMap[ax][ay] = avatar.getTile();
+            avatar.setCoordinate(ax, ay);
+        }
     }
 
     public int getWidth() {
@@ -361,5 +394,9 @@ public class World {
 
     public TETile[][] getWorldMap() {
         return worldMap;
+    }
+
+    public Avatar getAvatar() {
+        return avatar;
     }
 }

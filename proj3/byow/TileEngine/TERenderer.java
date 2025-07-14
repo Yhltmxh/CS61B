@@ -98,4 +98,21 @@ public class TERenderer {
         }
         StdDraw.show();
     }
+
+
+    /**
+     * 获取世界中给定坐标的tile
+     * @param x x坐标
+     * @param y y坐标
+     * @param world 世界
+     * @return title对象，若没有则返回null
+     */
+    public TETile getTitle(double x, double y, TETile[][] world) {
+        int wx = world.length, wy = world[0].length;
+        int tx = (int)x - xOffset, ty = (int)y - yOffset;
+        if (tx < 0 || tx >= wx || ty < 0 || ty >= wy) {
+            return Tileset.NOTHING;
+        }
+        return world[tx][ty];
+    }
 }
