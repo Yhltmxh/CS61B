@@ -199,19 +199,23 @@ public class TETile implements Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
+        if (this == obj) {
+            return true;
+        }
 
         // 2. 检查是否为 null 或类型不同
-        if (obj == null || getClass() != obj.getClass()) return false;
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
 
         // 3. 类型转换
         TETile tile = (TETile) obj;
 
         // 4. 比较所有关键字段
-        return character == tile.character &&
-                Objects.equals(textColor, tile.textColor) &&
-                Objects.equals(backgroundColor, tile.backgroundColor) &&
-                Objects.equals(description, tile.description) &&
-                Objects.equals(filepath, tile.filepath);
+        return character == tile.character
+                && Objects.equals(textColor, tile.textColor)
+                && Objects.equals(backgroundColor, tile.backgroundColor)
+                && Objects.equals(description, tile.description)
+                && Objects.equals(filepath, tile.filepath);
     }
 }

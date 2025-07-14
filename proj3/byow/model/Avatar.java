@@ -23,9 +23,9 @@ public class Avatar implements Serializable {
         this.y = y;
     }
 
-    public void setCoordinate(int x, int y) {
-        this.x = x;
-        this.y = y;
+    public void setCoordinate(int a, int b) {
+        this.x = a;
+        this.y = b;
     }
 
     public TETile getTile() {

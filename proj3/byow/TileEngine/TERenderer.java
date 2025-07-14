@@ -109,7 +109,7 @@ public class TERenderer {
      */
     public TETile getTitle(double x, double y, TETile[][] world) {
         int wx = world.length, wy = world[0].length;
-        int tx = (int)x - xOffset, ty = (int)y - yOffset;
+        int tx = (int) x - xOffset, ty = (int) y - yOffset;
         if (tx < 0 || tx >= wx || ty < 0 || ty >= wy) {
             return Tileset.NOTHING;
         }

@@ -73,62 +73,6 @@ public class FileUtils {
         writeContents(file, serialize(obj));
     }
 
-
-    private static final FilenameFilter PLAIN_FILES =
-            new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return new File(dir, name).isFile();
-                }
-            };
-
-    // 目录类型过滤器
-    private static final FilenameFilter PLAIN_DIRS =
-            new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return new File(dir, name).isDirectory();
-                }
-            };
-
-
-    static List<String> plainFilenamesIn(File dir) {
-        String[] files = dir.list(PLAIN_FILES);
-        if (files == null) {
-            return null;
-        } else {
-            Arrays.sort(files);
-            return Arrays.asList(files);
-        }
-    }
-
-
-    static List<String> plainFilenamesIn(String dir) {
-        return plainFilenamesIn(new File(dir));
-    }
-
-
-    /**
-     * 获取子目录名集合
-     * @param dir 目录
-     * @return 目录名集合
-     */
-    static List<String> plainDirectoryIn(File dir) {
-        String[] files = dir.list(PLAIN_DIRS);
-        if (files == null) {
-            return null;
-        } else {
-            Arrays.sort(files);
-            return Arrays.asList(files);
-        }
-    }
-
-
-    static List<String> plainDirectoryIn(String dir) {
-        return plainDirectoryIn(new File(dir));
-    }
-
-
     static File join(String first, String... others) {
         return Paths.get(first, others).toFile();
     }
@@ -159,7 +103,7 @@ public class FileUtils {
      */
     static void createDirectory(File file) {
         if (!file.exists() && !file.mkdir()) {
-            throw new RuntimeException(String.format("Failed to create '%s' directory.", file.getName()));
+            throw new RuntimeException("Failed to create directory.");
         }
     }
 
@@ -170,7 +114,7 @@ public class FileUtils {
     static void createFile(File file) {
         try {
             if (!file.exists() && !file.createNewFile()) {
-                throw new RuntimeException(String.format("Failed to create '%s' file.", file.getName()));
+                throw new RuntimeException("Failed to create file.");
             }
         } catch (IOException e) {
             throw new RuntimeException("I/O error during create file", e);
@@ -197,7 +141,7 @@ public class FileUtils {
      */
     static void deleteFile(File file) {
         if (!file.delete()) {
-            throw new RuntimeException(String.format("Failed to delete '%s' file.", file.getName()));
+            throw new RuntimeException("Failed to delete file.");
         }
     }
 

@@ -1,6 +1,5 @@
 package byow.model;
 
-import byow.TileEngine.TETile;
 import byow.TileEngine.Tileset;
 
 /**
